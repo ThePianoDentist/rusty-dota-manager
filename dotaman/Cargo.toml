@@ -1,0 +1,16 @@
+[package]
+
+name = "dota-manager"
+version = "0.1.0"
+authors = [
+    "Johnny Knight",
+]
+
+[[bin]]
+name = "dotaman"
+
+[dependencies]
+piston = "0.23.0"
+piston2d-graphics = "0.16.0"
+pistoncore-glutin_window = "0.27.0"
+piston2d-opengl_graphics = "0.30.0"
