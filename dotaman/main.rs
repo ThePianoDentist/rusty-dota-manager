@@ -1,6 +1,24 @@
+extern crate piston_window;
+
+use piston_window::*;
+
+#[derive(Copy, Clone)]
+enum Lane{
+	Top,
+	Mid,
+	Bot
+}
+
+#[derive(Copy, Clone)]
+enum Side{
+	Radiant,
+	Dire
+}
+
+#[derive(Copy, Clone)]
 struct Creep {
-	side: String,
-	lane: String,
+	side: Side,
+	lane: Lane,
 	hitpoints: u32,
 	attack_damage: u32,
 	melee_attack: bool,
@@ -8,25 +26,9 @@ struct Creep {
 	y_coord: u32
 }
 
-struct LaneCreeps{
-	radiant_top_creeps: Vec<Creep>,
-	radiant_mid_creeps: Vec<Creep>,
-	radiant_bot_creeps: Vec<Creep>,
-	dire_top_creeps: Vec<Creep>,
-	dire_mid_creeps: Vec<Creep>,
-	dire_bot_creeps: Vec<Creep>,
-}
-
 struct Game {
 		game_time: u64,
-		//radiant_towers array?,
-		//radiant_top_creeps: Vec<Creep>,
-		//radiant_mid_creeps: Vec<Creep>,
-		//radiant_bot_creeps: Vec<Creep>,
-		//dire_top_creeps: Vec<Creep>,
-		//dire_mid_creeps: Vec<Creep>,
-		//dire_bot_creeps: Vec<Creep>,
-		lane_creeps: LaneCreeps,
+		lane_creeps: Vec<Creep>,
 	}
 	
 trait TimeTick {
@@ -39,68 +41,126 @@ impl TimeTick for Game{
 	}
 }
 
-//fn move_creeps(game){
-	//for lane_creep_type in game.lane_creeps{
-		//match{
-			
-		//}
-	//}
-//}
+fn move_top_creeps_radiant(lane_creep: &mut Creep){
+	if lane_creep.y_coord > 2000{
+		lane_creep.y_coord -= 1;
+	}
+	else{
+		lane_creep.x_coord +=1
+	}
+}
+
+fn move_mid_creeps_radiant(lane_creep: &mut Creep){
+	lane_creep.y_coord -= 1;
+	lane_creep.x_coord += 1
+}
+
+fn move_bot_creeps_radiant(lane_creep: &mut Creep){
+	if lane_creep.x_coord < 14000{
+		lane_creep.x_coord += 1;
+	}
+	else{
+		lane_creep.y_coord -=1
+	}
+}
+
+fn move_mid_creeps_dire(lane_creep: &mut Creep){
+	lane_creep.y_coord += 1;
+	lane_creep.x_coord -= 1;
+}
+
+fn move_bot_creeps_dire(lane_creep: &mut Creep){
+	if lane_creep.y_coord < 14000{
+		lane_creep.y_coord += 1;
+	}
+	else{
+		lane_creep.x_coord -=1
+	}
+}
+
+fn move_top_creeps_dire(lane_creep: &mut Creep){
+	if lane_creep.x_coord > 2000{
+		lane_creep.x_coord -= 1;
+	}
+	else{
+		lane_creep.y_coord +=1
+	}
+}
+
+trait MoveCreeps{
+	fn move_creeps(&mut self);
+}
+
+impl MoveCreeps for Game{
+	fn move_creeps(&mut self){
+		for lane_creep in &mut self.lane_creeps{
+			match lane_creep.side{
+				Side::Radiant => match lane_creep.lane{
+					Lane::Top => move_top_creeps_radiant(lane_creep),
+					Lane::Mid => move_mid_creeps_radiant(lane_creep),
+					_ => move_bot_creeps_radiant(lane_creep),},
+				_ => match lane_creep.lane{
+						Lane::Top => move_top_creeps_dire(lane_creep),
+						Lane::Mid => move_mid_creeps_dire(lane_creep),
+						_ => move_bot_creeps_dire(lane_creep),
+					},
+			};
+		}
+	}
+}
 
 fn main() {
     println!("Hello, world!");
     
-    //let mut radiant_top_creeps = vec!();
-	//let mut radiant_mid_creeps = vec!();
-	//let mut radiant_bot_creeps = vec!();
-	//let mut dire_top_creeps = vec!();
-	//let mut dire_mid_creeps = vec!();
-	//let mut dire_bot_creeps = vec!();
-	
-	let mut lane_creeps = LaneCreeps{
-			radiant_top_creeps: vec!(),
-			radiant_mid_creeps: vec!(),
-			radiant_bot_creeps:vec!(),
-			dire_top_creeps: vec!(),
-			dire_mid_creeps: vec!(),
-			dire_bot_creeps: vec!()
-		};
+    let mut window: PistonWindow = 
+        WindowSettings::new("Hello Piston!", [640, 480])
+        .exit_on_esc(true).build().unwrap();
+    while let Some(e) = window.next() {
+        window.draw_2d(&e, |c, g| {
+            clear([1.0; 4], g);
+            rectangle([1.0, 0.0, 0.0, 1.0], // red
+                      [0.0, 0.0, 100.0, 100.0],
+                      c.transform, g);
+        });
+    };
 	
 	let mut game = Game{
 		game_time: 0,
-		lane_creeps: lane_creeps,
+		lane_creeps: vec!(),
 	};
 	
 	loop {
 		game.game_time += 1;
+		if game.game_time > 300{break;};
 		if game.game_time % 30 == 0{
 			for _ in 1..5{
 				let new_radiant_top_creep = Creep{
-					side: "radiant".to_string(),
-					lane: "top".to_string(),
+					side: Side::Radiant,
+					lane: Lane::Top,
 					hitpoints: 150,
 					attack_damage: 40,
 					melee_attack: true,
 					x_coord: 0,//4000,
-					y_coord: 0,//2000,
+					y_coord: 16000,//2000,
 				};
-				game.lane_creeps.radiant_top_creeps.push(new_radiant_top_creep);
-				let new_radiant_bot_creep = Creep{lane: "bot".to_string(), .. new_radiant_top_creep};
-				game.lane_creeps.radiant_mid_creeps.push(new_radiant_bot_creep);
-				let new_radiant_mid_creep = Creep{lane: "mid".to_string(), .. new_radiant_top_creep};
-				game.lane_creeps.radiant_bot_creeps.push(new_radiant_mid_creep);
-				let new_dire_top_creep = Creep{side: "dire".to_string(), .. new_radiant_top_creep};
-				game.lane_creeps.dire_top_creeps.push(new_dire_top_creep);
-				let new_dire_mid_creep = Creep{lane: "mid".to_string(), .. new_dire_top_creep};
-				game.lane_creeps.dire_mid_creeps.push(new_dire_mid_creep);
-				let new_dire_bot_creep = Creep{lane: "bot".to_string(), .. new_dire_top_creep};
-				game.lane_creeps.dire_bot_creeps.push(new_dire_bot_creep);
+				let new_radiant_bot_creep = Creep{lane: Lane::Bot, .. new_radiant_top_creep};
+				let new_radiant_mid_creep = Creep{lane: Lane::Mid, .. new_radiant_top_creep};
+				let new_dire_top_creep = Creep{side: Side::Dire, x_coord: 16000, y_coord: 0, .. new_radiant_top_creep};
+				let new_dire_bot_creep = Creep{lane: Lane::Bot, .. new_dire_top_creep};
+				let new_dire_mid_creep = Creep{lane: Lane::Mid, .. new_dire_top_creep};
+				game.lane_creeps.push(new_radiant_top_creep);
+				game.lane_creeps.push(new_radiant_bot_creep);
+				game.lane_creeps.push(new_radiant_mid_creep);
+				game.lane_creeps.push(new_dire_top_creep);
+				game.lane_creeps.push(new_dire_mid_creep);		
+				game.lane_creeps.push(new_dire_bot_creep);
 			};
 		}
 		println!("game time {}", game.game_time);
-		for (i, radiant_creep) in game.lane_creeps.radiant_mid_creeps.iter().enumerate(){
+		game.move_creeps();
+		for (i, creep) in game.lane_creeps.iter().enumerate(){
 			//println!("radiant_creeps {}", radiant_creep.side);
-			println!("radiant_creeps {}", i);
+			println!("creeps {} {}", creep.x_coord, creep.y_coord);
 		}
 	}
 }
