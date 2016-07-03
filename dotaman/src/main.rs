@@ -4,8 +4,10 @@ extern crate graphics;
 extern crate glutin_window;
 extern crate opengl_graphics;
 extern crate rand;
+extern crate find_folder;
 
 use piston::window::WindowSettings;
+use piston_window::{Texture, TextureSettings};
 use piston::event_loop::*;
 use piston::input::*;
 use glutin_window::GlutinWindow as Window;
@@ -18,7 +20,6 @@ const MAX_COORD: u32  = 600;
 
 pub struct App {
     gl: GlGraphics, // OpenGL drawing backend.
-    rotation: f64   // Rotation for the square.
 }
 
 impl App {
@@ -29,31 +30,21 @@ impl App {
         const RED:   [f32; 4] = [1.0, 0.0, 0.0, 1.0];
 
         let square = rectangle::square(0.0, 0.0, 20.0);
-        let rotation = self.rotation;
         let (x, y) = ((args.width / 2) as f64,
                       (args.height / 2) as f64);
 
         self.gl.draw(args.viewport(), |c, gl| {
             // Clear the screen.
             clear(GREEN, gl);
-
-            let transform = c.transform.trans(x, y)
-                                       .rot_rad(rotation)
-                                       .trans(-25.0, -25.0);
-
-            // Draw a box rotating around the middle of the screen.
-            ellipse(RED, square, transform, gl);
+			
+			//image(rust_logo, c.transform, gl);
         });
     }
-
-    fn update(&mut self, args: &UpdateArgs) {
-        // Rotate 2 radians per second.
-        self.rotation += 2.0 * args.dt;
-	}
     
     fn update_creeps(&mut self, lane_creeps: &Vec<Creep>, args: &RenderArgs) {
 		const GREEN: [f32; 4] = [0.0, 1.0, 0.0, 1.0];
 		const RED:   [f32; 4] = [1.0, 0.0, 0.0, 1.0];
+		const BLUE: [f32; 4] = [0.0, 0.0, 1.0, 1.0];
 		
 		self.gl.draw(args.viewport(), |_, gl| {
 				// Clear the screen.
@@ -69,7 +60,12 @@ impl App {
 				let square = rectangle::square(0.0, 0.0, 3.0);
 
 				// Draw a box rotating around the middle of the screen.
-				ellipse(RED, square, transform, gl);
+				if creep.side == Side::Dire{
+					ellipse(RED, square, transform, gl);
+				}
+				else{
+					ellipse(BLUE, square, transform, gl);
+				}
 			});
 		}
     }
@@ -92,7 +88,7 @@ enum Side{
 struct Creep {
 	side: Side,
 	lane: Lane,
-	hitpoints: u32,
+	hitpoints: i32,
 	attack_damage: u32,
 	melee_attack: bool,
 	x_coord: u32,
@@ -135,7 +131,6 @@ fn move_mid_creeps_radiant(lane_creep: &mut Creep){
 fn move_bot_creeps_radiant(lane_creep: &mut Creep){
 	if lane_creep.x_coord < (MAX_COORD as f32 *(7.0/8.0)) as u32{
 		lane_creep.x_coord += 1;
-		println!("botrad going right {}, {}", lane_creep.x_coord, MAX_COORD *(7/8))
 	}
 	else{
 		if 0 < lane_creep.y_coord{
@@ -173,7 +168,7 @@ fn move_top_creeps_dire(lane_creep: &mut Creep){
 	}
 }
 
-fn lane_creeps_attack(lane_creeps: &mut Vec<Creep>) -> Vec<Creep>{
+fn lane_creeps_attack(lane_creeps: &mut Vec<Creep>){
 	let mut creeps_to_destroy: Vec<usize> = vec!();
 	let mut creeps_to_not_destroy: Vec<Creep> = vec!();
 	let clone = lane_creeps.clone();
@@ -183,31 +178,14 @@ fn lane_creeps_attack(lane_creeps: &mut Vec<Creep>) -> Vec<Creep>{
 		for (i, other_creep) in lane_creeps.iter_mut().enumerate(){
 			if other_creep.side != our_side{
 				let (x_distance_sq, y_distance_sq) : (u32, u32) = ((other_creep.x_coord as i32 - our_creep.x_coord as i32).pow(2) as u32, (other_creep.y_coord as i32 - our_creep.y_coord as i32).pow(2) as u32);
-				println!("distances {}, {}", x_distance_sq, y_distance_sq);
 				if x_distance_sq < 4{
 					if y_distance_sq < 4{
-						let health_left: i32 = other_creep.hitpoints as i32 - our_creep.attack_damage as i32;
-						println!("healt, {}", health_left);
-						if health_left < 0{
-							creeps_to_destroy.push(i);
-							//i_want_to_moveit_moveit = false;
-						}
-						else{
-							other_creep.hitpoints -= our_creep.attack_damage;
-							creeps_to_not_destroy.push(*other_creep);
-						};
-					}
-					else{creeps_to_not_destroy.push(*other_creep);};
+						other_creep.hitpoints -= our_creep.attack_damage as i32;
+					};
 				}
-				else{creeps_to_not_destroy.push(*other_creep);};
 			}
-			else{creeps_to_not_destroy.push(*other_creep);};
-		};
-	}
-	creeps_to_not_destroy
-	//for index in creeps_to_destroy{
-	//	lane_creeps.remove(index);
-	//};
+		}
+	};
 }
 
 trait MoveCreeps{
@@ -233,12 +211,22 @@ impl MoveCreeps for Game{
 }
 
 trait AttackCreeps{
-	fn attack_creeps(&mut self) -> Vec<Creep>;
+	fn attack_creeps(&mut self);
 }
 
 impl AttackCreeps for Game{
-	fn attack_creeps(&mut self) -> Vec<Creep>{
+	fn attack_creeps(&mut self){
 		lane_creeps_attack(&mut self.lane_creeps)
+	}
+}
+
+trait KillOffCreeps{
+	fn kill_off_creeps(&mut self);
+}
+
+impl KillOffCreeps for Game{
+	fn kill_off_creeps(&mut self){
+		&mut self.lane_creeps.retain(|&i| i.hitpoints > 0);
 	}
 }
 
@@ -257,11 +245,20 @@ fn main() {
         .exit_on_esc(true)
         .build()
         .unwrap();
+        
+    let assets = find_folder::Search::ParentsThenKids(3, 3)
+        .for_folder("assets").unwrap();
+    let rust_logo = assets.join("rust.png");
+    let rust_logo = Texture::from_path(
+            &mut window,
+            &rust_logo,
+            Flip::None,
+            &TextureSettings::new()
+	).unwrap();
 
     // Create a new game and run it.
     let mut app = App {
         gl: GlGraphics::new(opengl),
-        rotation: 0.0
     };
 
     let mut events = window.events();
@@ -270,10 +267,6 @@ fn main() {
             app.render(&r);
             break;
         }
-        
-        if let Some(u) = e.update_args() {
-            app.update(&u);
-		}
     }
 	
 	let mut game = Game{
@@ -284,7 +277,7 @@ fn main() {
 	loop {
 		game.game_time += 1;
 		//if game.game_time > 300{break;};
-		if game.game_time % 300 == 0{
+		if game.game_time % 280 == 0 || game.game_time == 1{
 			for _ in 1..5{
 				let mut new_radiant_top_creep = Creep{
 					side: Side::Radiant,
@@ -292,12 +285,13 @@ fn main() {
 					hitpoints: 150,
 					attack_damage: 160,
 					melee_attack: true,
-					x_coord: 10,//4000,
-					y_coord: MAX_COORD - 10,//2000,
+					x_coord: MAX_COORD / 8,//4000,
+					y_coord: (MAX_COORD as f32 *(7.0/8.0)) as u32,//2000,
 				};
 				let mut new_radiant_bot_creep = Creep{lane: Lane::Bot, .. new_radiant_top_creep};
 				let mut new_radiant_mid_creep = Creep{lane: Lane::Mid, .. new_radiant_top_creep};
-				let mut new_dire_top_creep = Creep{side: Side::Dire, x_coord: MAX_COORD - 10, y_coord: 10, .. new_radiant_top_creep};
+				let mut new_dire_top_creep = Creep{side: Side::Dire, x_coord: (MAX_COORD as f32 *(7.0/8.0)) as u32,
+					 y_coord: MAX_COORD / 8, attack_damage: 20, .. new_radiant_top_creep};
 				let mut new_dire_bot_creep = Creep{lane: Lane::Bot, .. new_dire_top_creep};
 				let mut new_dire_mid_creep = Creep{lane: Lane::Mid, .. new_dire_top_creep};
 				game.lane_creeps.push(new_radiant_top_creep);
@@ -307,9 +301,10 @@ fn main() {
 				game.lane_creeps.push(new_dire_mid_creep);		
 				game.lane_creeps.push(new_dire_bot_creep);
 			};
-			println!("game time {}", game.game_time);
 		}
-		game.lane_creeps = game.attack_creeps();
+		println!("game time {}", game.game_time);
+		game.attack_creeps();
+		game.kill_off_creeps();
 		game.move_creeps();
 		while let Some(e) = events.next(&mut window) {
 			if let Some(r) = e.render_args() {

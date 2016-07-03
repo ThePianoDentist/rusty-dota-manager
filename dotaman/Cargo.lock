@@ -2,6 +2,7 @@
 name = "dota-manager"
 version = "0.1.0"
 dependencies = [
+ "find_folder 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "piston 0.23.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "piston2d-graphics 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "piston2d-opengl_graphics 0.30.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -151,6 +152,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "num 0.1.32 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "find_folder"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "flate2"
