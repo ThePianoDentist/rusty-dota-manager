@@ -19,7 +19,7 @@ indent_mode=2
 
 [project]
 name=dotaman
-base_path=/home/jdog/projects/dotaman/
+base_path=/home/jdog/projects/dotaman/src
 
 [long line marker]
 long_line_behaviour=1
