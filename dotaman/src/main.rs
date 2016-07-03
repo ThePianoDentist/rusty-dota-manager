@@ -2,43 +2,45 @@ extern crate piston;
 extern crate piston_window;
 extern crate graphics;
 extern crate glutin_window;
-extern crate opengl_graphics;
+//extern crate opengl_graphics;
 extern crate rand;
 extern crate find_folder;
+extern crate gfx_device_gl;
+//extern crate gfx_core;
 
-use piston::window::WindowSettings;
-use piston_window::{Texture, TextureSettings};
-use piston::event_loop::*;
-use piston::input::*;
-use glutin_window::GlutinWindow as Window;
-use opengl_graphics::{ GlGraphics, OpenGL };
-use graphics::*;
+//use piston::window::*;
+use piston_window::*;
+//use piston::event_loop::*;
+//use piston::input::*;
+use glutin_window::GlutinWindow;
+//use opengl_graphics::GlGraphics;
 use rand::Rng;
+use gfx_device_gl::Resources;
+//use gfx_core::Resources;
+//use gfx_device_gl;
 
 
 const MAX_COORD: u32  = 600;
 
 pub struct App {
-    gl: GlGraphics, // OpenGL drawing backend.
+    //gl: GlGraphics, // OpenGL drawing backend.
+    window: PistonWindow,
 }
 
 impl App {
-    fn render(&mut self, args: &RenderArgs) {
-        //use graphics::*;
+    //fn render(&mut self, args: &RenderArgs, rust_logo: &piston_window::Texture<gfx_device_gl::Resources>) {
+	fn render(&mut self, args: &RenderArgs, rust_logo: &piston_window::Texture<Resources>) {
 
         const GREEN: [f32; 4] = [0.0, 1.0, 0.0, 1.0];
-        const RED:   [f32; 4] = [1.0, 0.0, 0.0, 1.0];
-
-        let square = rectangle::square(0.0, 0.0, 20.0);
-        let (x, y) = ((args.width / 2) as f64,
-                      (args.height / 2) as f64);
-
-        self.gl.draw(args.viewport(), |c, gl| {
-            // Clear the screen.
-            clear(GREEN, gl);
-			
-			//image(rust_logo, c.transform, gl);
-        });
+		while let Some(e) = self.window.next() {
+			self.window.draw_2d(&e, |c, gl| {
+				// Clear the screen.
+				clear(GREEN, gl);
+				
+				image(rust_logo, c.transform, gl);
+			});
+			break;
+		}
     }
     
     fn update_creeps(&mut self, lane_creeps: &Vec<Creep>, args: &RenderArgs) {
@@ -46,27 +48,33 @@ impl App {
 		const RED:   [f32; 4] = [1.0, 0.0, 0.0, 1.0];
 		const BLUE: [f32; 4] = [0.0, 0.0, 1.0, 1.0];
 		
-		self.gl.draw(args.viewport(), |_, gl| {
+		while let Some(e) = self.window.next() {
+			self.window.draw_2d(&e, |_, gl| {
 				// Clear the screen.
 				clear(GREEN, gl);
 			});
+			break;
+		}
         for creep in lane_creeps{
-			self.gl.draw(args.viewport(), |c, gl| {
-				//let num: f64 = rand::thread_rng().gen_range(0.0, 700.0);
-				let x = (creep.x_coord) as f64;
-				let y = (creep.y_coord) as f64; 
-				let transform = c.transform.trans(x, y);
-										   
-				let square = rectangle::square(0.0, 0.0, 3.0);
+			while let Some(e) = self.window.next() {
+				self.window.draw_2d(&e, |c, gl| {
+					//let num: f64 = rand::thread_rng().gen_range(0.0, 700.0);
+					let x = (creep.x_coord) as f64;
+					let y = (creep.y_coord) as f64; 
+					let transform = c.transform.trans(x, y);
+											   
+					let square = rectangle::square(0.0, 0.0, 3.0);
 
-				// Draw a box rotating around the middle of the screen.
-				if creep.side == Side::Dire{
-					ellipse(RED, square, transform, gl);
-				}
-				else{
-					ellipse(BLUE, square, transform, gl);
-				}
-			});
+					// Draw a box rotating around the middle of the screen.
+					if creep.side == Side::Dire{
+						ellipse(RED, square, transform, gl);
+					}
+					else{
+						ellipse(BLUE, square, transform, gl);
+					}
+				});
+				break;
+			}
 		}
     }
 }
@@ -237,7 +245,7 @@ fn main() {
     let opengl = OpenGL::V2_1;
 
     // Create an Glutin window.
-    let mut window: Window = WindowSettings::new(
+    let mut window: PistonWindow = WindowSettings::new(
             "spinning-square",
             [600, 600]
         )
@@ -250,7 +258,7 @@ fn main() {
         .for_folder("assets").unwrap();
     let rust_logo = assets.join("rust.png");
     let rust_logo = Texture::from_path(
-            &mut window,
+            &mut window.factory,
             &rust_logo,
             Flip::None,
             &TextureSettings::new()
@@ -258,13 +266,14 @@ fn main() {
 
     // Create a new game and run it.
     let mut app = App {
-        gl: GlGraphics::new(opengl),
+        //gl: GlGraphics::new(opengl),
+        window: window,
     };
 
-    let mut events = window.events();
-    while let Some(e) = events.next(&mut window) {
+    let mut events = app.window.events();
+    while let Some(e) = events.next(&mut app.window) {
         if let Some(r) = e.render_args() {
-            app.render(&r);
+            app.render(&r, &rust_logo);
             break;
         }
     }
@@ -306,7 +315,7 @@ fn main() {
 		game.attack_creeps();
 		game.kill_off_creeps();
 		game.move_creeps();
-		while let Some(e) = events.next(&mut window) {
+		while let Some(e) = events.next(&mut app.window) {
 			if let Some(r) = e.render_args() {
 				app.update_creeps(&game.lane_creeps, &r);
 				break;
