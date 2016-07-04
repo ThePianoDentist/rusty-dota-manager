@@ -28,35 +28,32 @@ pub struct App {
 }
 
 impl App {
-    //fn render(&mut self, args: &RenderArgs, rust_logo: &piston_window::Texture<gfx_device_gl::Resources>) {
 	fn render(&mut self, args: &RenderArgs, rust_logo: &piston_window::Texture<Resources>) {
 
         const GREEN: [f32; 4] = [0.0, 1.0, 0.0, 1.0];
-		while let Some(e) = self.window.next() {
+        if let Some(e) = self.window.next(){
 			self.window.draw_2d(&e, |c, gl| {
 				// Clear the screen.
 				clear(GREEN, gl);
 				
 				image(rust_logo, c.transform, gl);
 			});
-			break;
 		}
-    }
+	}
     
     fn update_creeps(&mut self, lane_creeps: &Vec<Creep>, args: &RenderArgs) {
 		const GREEN: [f32; 4] = [0.0, 1.0, 0.0, 1.0];
 		const RED:   [f32; 4] = [1.0, 0.0, 0.0, 1.0];
 		const BLUE: [f32; 4] = [0.0, 0.0, 1.0, 1.0];
 		
-		while let Some(e) = self.window.next() {
+		if let Some(e) = self.window.next() {
 			self.window.draw_2d(&e, |_, gl| {
 				// Clear the screen.
 				clear(GREEN, gl);
 			});
-			break;
 		}
         for creep in lane_creeps{
-			while let Some(e) = self.window.next() {
+			if let Some(e) = self.window.next() {
 				self.window.draw_2d(&e, |c, gl| {
 					//let num: f64 = rand::thread_rng().gen_range(0.0, 700.0);
 					let x = (creep.x_coord) as f64;
@@ -73,7 +70,6 @@ impl App {
 						ellipse(BLUE, square, transform, gl);
 					}
 				});
-				break;
 			}
 		}
     }
@@ -253,6 +249,8 @@ fn main() {
         .exit_on_esc(true)
         .build()
         .unwrap();
+    
+    window.set_ups(30);
         
     let assets = find_folder::Search::ParentsThenKids(3, 3)
         .for_folder("assets").unwrap();
