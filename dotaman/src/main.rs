@@ -12,10 +12,12 @@ use piston_window::*;
 use opengl_graphics::{GlGraphics, Texture as gTexture};
 use rand::Rng;
 
-
 const MAX_COORD: u32  = 600;
 const GREEN: [f32; 4] = [0.0, 1.0, 0.0, 1.0];
 const RED:   [f32; 4] = [1.0, 0.0, 0.0, 1.0];
+const DARK_RED: [f32; 4] = [0.8, 0.1, 0.1, 1.0];
+const DARK_GREEN: [f32; 4] = [0.2, 0.8, 0.0, 1.0];
+const YELLOW: [f32; 4] = [1.0, 1.0, 0.0, 1.0];
 
 pub struct App<'a> {
     gl: GlGraphics, // OpenGL drawing backend.
@@ -33,16 +35,37 @@ impl<'a> App<'a> {
 		});
 	}
     
-    fn update_creeps(&mut self, lane_creeps: &Vec<Creep>, args: &RenderArgs) {
+    fn update_game(&mut self, game: &Game, args: &RenderArgs) {
 		let background = self.background;
 		self.gl.draw(args.viewport(), |c, gl| {
 			clear(GREEN, gl);
 			
 			image(background, c.transform, gl);
 		});
-        for creep in lane_creeps{
+		
+		for tower in &game.towers{
+			if tower.hp.is_positive(){
+				self.gl.draw(args.viewport(), |c, gl| {
+					let transform = c.transform.trans(tower.position.x as f64, tower.position.y as f64);
+											   
+					let square = rectangle::square(0.0, 0.0, 10.0);
+					
+					if tower.side == Side::Dire{
+						rectangle(DARK_RED, square, transform, gl);
+					}
+					else{
+						rectangle(DARK_GREEN, square, transform, gl);
+					}
+					
+					if tower.attacked{ellipse(YELLOW, rectangle::square(0.0, 0.0, 4.0),
+						 c.transform.trans(tower.position.x as f64 + 3.0, tower.position.y as f64+ 3.0), gl);};
+				});
+			}
+		};
+		
+        for creep in &game.lane_creeps{
 			self.gl.draw(args.viewport(), |c, gl| {
-				let transform = c.transform.trans(creep.x as f64, creep.y as f64);
+				let transform = c.transform.trans(creep.position.x as f64, creep.position.y as f64);
 										   
 				let square = rectangle::square(0.0, 0.0, 5.0);
 
@@ -55,6 +78,60 @@ impl<'a> App<'a> {
 			});
 		}
     }
+}
+
+#[derive(Copy, Clone)]
+struct Position{
+	x: u32,
+	y: u32
+}
+
+trait Distance{
+	fn distance_between(&self, other_point: Position) -> f32;
+	fn x_distance(&self, other_point: Position) -> u32;
+	fn y_distance(&self, other_point: Position) -> u32;
+}
+
+impl Distance for Position{
+	fn x_distance(&self, other_point: Position) -> u32{
+		(self.x as i32 - other_point.x as i32).abs() as u32
+	}
+	
+	fn y_distance(&self, other_point: Position) -> u32{
+		(self.y as i32 - other_point.y as i32).abs() as u32
+	}
+	
+	fn distance_between(&self, other_point: Position) -> f32{
+		(self.y_distance(other_point).pow(2) as f32 + self.x_distance(other_point).pow(2) as f32).sqrt().abs()
+	}
+}
+
+trait CoordManipulation{
+	fn small_random_pos_offset(&mut self) -> Position;
+	fn swap_x_y(&mut self) -> Position;
+	fn alter_y(&self, i32) -> Position;
+	fn alter_x(&self, i32) -> Position;
+}
+
+impl CoordManipulation for Position{
+	fn small_random_pos_offset(&mut self) -> Position{
+		let rand_num = || rand::thread_rng().gen_range(0, 8) as i32 - 4;
+		let new_x = (self.x as i32 + rand_num()) as u32;
+		let new_y = (self.y as i32 + rand_num()) as u32;
+		Position{x: new_x, y: new_y}
+	}
+	
+	fn swap_x_y(&mut self) -> Position{
+		Position{x: self.y, y: self.x}
+	}
+	
+	fn alter_y(&self, y_change: i32) -> Position{
+		Position{x: self.x, y: (self.y as i32 + y_change).abs() as u32}  // need do handling of if give negative coord better
+	}
+	
+	fn alter_x(&self, x_change: i32) -> Position{
+		Position{x: (self.x as i32 + x_change).abs() as u32, y: self.y}  // need do handling of if give negative coord better
+	}
 }
 
 #[derive(Copy, Clone)]
@@ -74,108 +151,157 @@ enum Side{
 struct Creep {
 	side: Side,
 	lane: Lane,
-	hitpoints: i32,
+	hp: i32,
 	attack_damage: u32,
 	melee_attack: bool,
 	attacking: bool,
-	x: u32,
-	y: u32
+	position: Position,
 }
 
 struct Game {
-		game_time: u64,
-		lane_creeps: Vec<Creep>,
-	}
+	game_tick: u64,
+	lane_creeps: Vec<Creep>,
+	towers: [Tower; 18],
+}
 	
 trait TimeTick {
-	fn new_game_time(&mut self);
+	fn new_game_tick(&mut self);
 }
 
 impl TimeTick for Game{
-	fn new_game_time(&mut self){
-		self.game_time = self.game_time + 1
+	fn new_game_tick(&mut self){
+		self.game_tick += 1
 	}
 }
 
-fn move_top_creeps_radiant(lane_creep: &mut Creep){
-	if lane_creep.y > (MAX_COORD / 8){
-		lane_creep.y -= 1;
-	}
-	else{
-		lane_creep.x +=1
-	}
+struct Tower{
+	side: Side,
+	lane: Lane,
+	tier: u8,
+	max_hp: u32,
+	hp: i32,
+	attack_damage: u32,
+	attacked: bool,
+	position: Position,
 }
 
-fn move_mid_creeps_radiant(lane_creep: &mut Creep){
-	if 0 < lane_creep.y{
-		if lane_creep.x < MAX_COORD{
-			lane_creep.y -= 1;
-			lane_creep.x += 1
-		};
-	};
+trait Attack{
+	fn towers_attack(&mut self);
+	
+	fn lane_creeps_attack(&mut self);
 }
 
-fn move_bot_creeps_radiant(lane_creep: &mut Creep){
-	if lane_creep.x < (MAX_COORD as f32 *(7.0/8.0)) as u32{
-		lane_creep.x += 1;
-	}
-	else{
-		if 0 < lane_creep.y{
-			lane_creep.y -=1;
-		}
-	}
-}
-
-fn move_mid_creeps_dire(lane_creep: &mut Creep){
-	if lane_creep.y  < MAX_COORD{
-		if 0 < lane_creep.x{
-			lane_creep.y += 1;
-			lane_creep.x -= 1
-		};
-	};
-}
-
-fn move_bot_creeps_dire(lane_creep: &mut Creep){
-	if lane_creep.y < (MAX_COORD as f32 *(7.0/8.0)) as u32{
-		lane_creep.y += 1;
-	}
-	else{
-		if 0 < lane_creep.x{
-			lane_creep.x -=1
-		}
-	}
-}
-
-fn move_top_creeps_dire(lane_creep: &mut Creep){
-	if lane_creep.x > MAX_COORD / 8{
-		lane_creep.x -= 1;
-	}
-	else{
-		lane_creep.y +=1
-	}
-}
-
-fn lane_creeps_attack(lane_creeps: &mut Vec<Creep>){
-	let clone = lane_creeps.clone();
-	for (i, our_creep) in clone.clone().iter().enumerate(){
-		let mut our_creep_attacked = false;
-		//let our_creep_index: usize = i;
-		let our_side: Side = our_creep.side;
-		for other_creep in lane_creeps.iter_mut(){
-			if other_creep.side != our_side{
-				let (x_distance_sq, y_distance_sq) : (u32, u32) = ((other_creep.x as i32 - our_creep.x as i32).pow(2) as u32, (other_creep.y as i32 - our_creep.y as i32).pow(2) as u32);
-				if x_distance_sq < 4{
-					if y_distance_sq < 4{
-						other_creep.hitpoints -= our_creep.attack_damage as i32;
-						our_creep_attacked = true;
-						println!("our creep attacked {}", our_creep_attacked);
+impl Attack for Game{
+	fn towers_attack(&mut self){
+		for tower in &mut self.towers{
+			tower.attacked = false;
+			if tower.hp.is_positive(){
+				for creep in &mut self.lane_creeps{
+					if tower.position.distance_between(creep.position) < 12.0 && creep.side != tower.side && !tower.attacked{
+						creep.hp -= tower.attack_damage as i32;
+						tower.attacked = true;
 						break;
-					};
+					}
 				}
 			}
 		}
-		lane_creeps[i].attacking = our_creep_attacked;
-	};
+	}
+	
+	fn lane_creeps_attack(&mut self){
+		let clone = self.lane_creeps.clone();
+		for (i, our_creep) in clone.clone().iter().enumerate(){
+			let mut our_creep_attacked = false;
+			let our_side: Side = our_creep.side;
+			for other_creep in &mut self.lane_creeps{
+				if other_creep.side != our_side && our_creep.position.distance_between(other_creep.position) < 12.0{
+					other_creep.hp -= our_creep.attack_damage as i32;
+					our_creep_attacked = true;
+					break;
+				};
+			}
+			
+			if !our_creep_attacked{
+				for tower in &mut self.towers{
+					if tower.side != our_side && tower.hp.is_positive() && our_creep.position.distance_between(tower.position) < 12.0{
+						tower.hp -= our_creep.attack_damage as i32;
+						our_creep_attacked = true;
+						break;
+					};
+				};
+			}
+			self.lane_creeps[i].attacking = our_creep_attacked;
+			
+		};
+	}
+}
+
+trait Move{
+	fn move_top_creeps_radiant(&mut self);
+	fn move_mid_creeps_radiant(&mut self);
+	fn move_bot_creeps_radiant(&mut self);
+	fn move_top_creeps_dire(&mut self);
+	fn move_mid_creeps_dire(&mut self);
+	fn move_bot_creeps_dire(&mut self);
+}
+
+impl Move for Creep{
+	fn move_top_creeps_radiant(&mut self){
+		if self.position.y > (MAX_COORD / 8){
+			self.position.y -= 1;
+		}
+		else{
+			self.position.x +=1
+		}
+	}
+
+	fn move_mid_creeps_radiant(&mut self){
+		if 0 < self.position.y{
+			if self.position.x < MAX_COORD{
+				self.position.y -= 1;
+				self.position.x += 1
+			};
+		};
+	}
+
+	fn move_bot_creeps_radiant(&mut self){
+		if self.position.x < (MAX_COORD as f32 *(7.0/8.0)) as u32{
+			self.position.x += 1;
+		}
+		else{
+			if 0 < self.position.y{
+				self.position.y -=1;
+			}
+		}
+	}
+
+	fn move_mid_creeps_dire(&mut self){
+		if self.position.y  < MAX_COORD{
+			if 0 < self.position.x{
+				self.position.y += 1;
+				self.position.x -= 1
+			};
+		};
+	}
+
+	fn move_bot_creeps_dire(&mut self){
+		if self.position.y < (MAX_COORD as f32 *(7.0/8.0)) as u32{
+			self.position.y += 1;
+		}
+		else{
+			if 0 < self.position.x{
+				self.position.x -=1
+			}
+		}
+	}
+
+	fn move_top_creeps_dire(&mut self){
+		if self.position.x > MAX_COORD / 8{
+			self.position.x -= 1;
+		}
+		else{
+			self.position.y +=1
+		}
+	}
 }
 
 trait MoveCreeps{
@@ -185,17 +311,16 @@ trait MoveCreeps{
 impl MoveCreeps for Game{
 	fn move_creeps(&mut self){
 		for lane_creep in &mut self.lane_creeps{
-			//println!("{}", lane_creep.attacking);
 			if !lane_creep.attacking{
 				match lane_creep.side{
 					Side::Radiant => match lane_creep.lane{
-						Lane::Top => move_top_creeps_radiant(lane_creep),
-						Lane::Mid => move_mid_creeps_radiant(lane_creep),
-						Lane::Bot => move_bot_creeps_radiant(lane_creep)},
+						Lane::Top => lane_creep.move_top_creeps_radiant(),
+						Lane::Mid => lane_creep.move_mid_creeps_radiant(),
+						Lane::Bot => lane_creep.move_bot_creeps_radiant()},
 					_ => match lane_creep.lane{
-							Lane::Top => move_top_creeps_dire(lane_creep),
-							Lane::Mid => move_mid_creeps_dire(lane_creep),
-							Lane::Bot => move_bot_creeps_dire(lane_creep)
+							Lane::Top => lane_creep.move_top_creeps_dire(),
+							Lane::Mid => lane_creep.move_mid_creeps_dire(),
+							Lane::Bot => lane_creep.move_bot_creeps_dire()
 						},
 				};
 			}
@@ -203,30 +328,14 @@ impl MoveCreeps for Game{
 	}
 }
 
-trait AttackCreeps{
-	fn attack_creeps(&mut self);
-}
-
-impl AttackCreeps for Game{
-	fn attack_creeps(&mut self){
-		lane_creeps_attack(&mut self.lane_creeps)
-	}
-}
-
-trait KillOffCreeps{
+trait KillOff{
 	fn kill_off_creeps(&mut self);
 }
 
-impl KillOffCreeps for Game{
+impl KillOff for Game{
 	fn kill_off_creeps(&mut self){
-		&mut self.lane_creeps.retain(|&i| i.hitpoints > 0);
+		&mut self.lane_creeps.retain(|&i| i.hp > 0);
 	}
-}
-
-fn small_random_pos_offset(start_pos: u32) -> u32{
-	let rand_num = rand::thread_rng().gen_range(0, 8) as i32 - 4;
-	println!("in rand {}", rand_num);
-	(start_pos as i32 + rand_num) as u32
 }
 
 fn main() {
@@ -272,31 +381,81 @@ fn main() {
         }
     }
 	
+	
+	let tower = Tower{
+			side: Side::Dire,
+			lane: Lane::Mid,
+			tier: 1,
+			max_hp: 200,
+			hp: 200,
+			attack_damage: 30,
+			attacked: false,
+			position: Position{x: (MAX_COORD/2),
+				y: (MAX_COORD/2),
+				},
+		};
+	let t2_dire_pos = Position{x: (MAX_COORD/2) + (MAX_COORD/8), y: (MAX_COORD/2) - (MAX_COORD/8)};
+	let t2_dire_tower = Tower{tier: 2, max_hp: 300, hp: 300, position: t2_dire_pos, .. tower};
+	let t3_dire_tower = Tower{tier: 3, max_hp: 400, hp: 400,
+		 position: Position{x: (MAX_COORD/2) + (MAX_COORD/4), y: (MAX_COORD/2) - (MAX_COORD/4)}, .. tower};
+	
+	let t1_rad_tower = Tower{side: Side::Radiant,
+		 position: Position{x: (MAX_COORD/2) - (MAX_COORD/16), y: (MAX_COORD/2) + (MAX_COORD/16)}, .. tower};
+	let t2_rad_tower = Tower{side: Side::Radiant,
+		 position: Position{x: (MAX_COORD/2) - (MAX_COORD/16) - (MAX_COORD/8), y: (MAX_COORD/2) + (MAX_COORD/16) + (MAX_COORD/8)},
+			  .. t2_dire_tower};
+	let t3_rad_tower = Tower{side: Side::Radiant,
+		 position: Position{x: (MAX_COORD/2) - (MAX_COORD/16) - (MAX_COORD/4), y: (MAX_COORD/2) + (MAX_COORD/16) + (MAX_COORD/4)},
+			  .. t3_dire_tower};
+	
+	let t3_rad_top_tower = Tower{lane: Lane::Top, position: Position{x: MAX_COORD/12, y: (MAX_COORD as f32 *(12.0/16.0)) as u32},.. t3_rad_tower};
+	let t2_rad_top_tower = Tower{tier: 2, position: t3_rad_top_tower.position.alter_y(-((MAX_COORD/8) as i32)), .. t3_rad_top_tower};
+	let t1_rad_top_tower = Tower{tier: 1, position: t2_rad_top_tower.position.alter_y(-((MAX_COORD/8) as i32)), .. t2_rad_top_tower};
+	
+	let t3_rad_bot_tower = Tower{lane: Lane::Bot, position: Position{x: MAX_COORD/4, y: (MAX_COORD as f32 *(14.0/16.0)) as u32},.. t3_rad_tower};
+	let t2_rad_bot_tower = Tower{tier: 2, position: t3_rad_bot_tower.position.alter_x((MAX_COORD/4) as i32), .. t3_rad_bot_tower};
+	let t1_rad_bot_tower = Tower{tier: 1, position: t2_rad_bot_tower.position.alter_x((MAX_COORD/4) as i32), .. t2_rad_bot_tower};
+	
+	let t3_dire_top_tower = Tower{lane: Lane::Top, position: Position{x: MAX_COORD - MAX_COORD/4, y: (MAX_COORD as f32 *(2.0/16.0)) as u32},.. t3_dire_tower};
+	let t2_dire_top_tower = Tower{tier: 2, position: t3_dire_top_tower.position.alter_x(-((MAX_COORD/4) as i32)), .. t3_dire_top_tower};
+	let t1_dire_top_tower = Tower{tier: 1, position: t2_dire_top_tower.position.alter_x(-((MAX_COORD/4) as i32)), .. t2_dire_top_tower};
+	
+	let t3_dire_bot_tower = Tower{lane: Lane::Bot, position: Position{x: MAX_COORD - MAX_COORD/8, y: (MAX_COORD as f32 *(6.0/16.0)) as u32},.. t3_dire_tower};
+	let t2_dire_bot_tower = Tower{tier: 2, position: t3_dire_bot_tower.position.alter_y((MAX_COORD/6) as i32), .. t3_dire_bot_tower};
+	let t1_dire_bot_tower = Tower{tier: 1, position: t2_dire_bot_tower.position.alter_y((MAX_COORD/6) as i32), .. t2_dire_bot_tower};
+	
 	let mut game = Game{
-		game_time: 0,
+		game_tick: 0,
 		lane_creeps: vec!(),
+		towers: [tower, t2_dire_tower, t3_dire_tower, t1_rad_tower, t2_rad_tower, t3_rad_tower, t3_rad_top_tower,
+		t2_rad_top_tower, t1_rad_top_tower, t3_rad_bot_tower, t2_rad_bot_tower, t1_rad_bot_tower, t3_dire_top_tower, t2_dire_top_tower,
+		t1_dire_top_tower, t3_dire_bot_tower, t2_dire_bot_tower, t1_dire_bot_tower],
 	};
 	
 	loop {
-		game.game_time += 1;
-		if game.game_time % 280 == 0 || game.game_time == 1{
+		game.game_tick += 1;
+		if game.game_tick % 280 == 0 || game.game_tick == 1{
 			for _ in 1..5{
+				let mut position = Position{
+						x: MAX_COORD / 8,
+						y: (MAX_COORD as f32 *(7.0/8.0)) as u32
+						};
 				let new_radiant_top_creep = Creep{
 					side: Side::Radiant,
 					lane: Lane::Top,
-					hitpoints: 150,
+					hp: 150,
 					attack_damage: 5,
-					attacking: false,
+					attacking: false,	
 					melee_attack: true,
-					x: small_random_pos_offset(MAX_COORD / 8),//4000,
-					y: small_random_pos_offset((MAX_COORD as f32 *(7.0/8.0)) as u32),//2000,
+					position: position.small_random_pos_offset(),
 				};
-				let new_radiant_bot_creep = Creep{lane: Lane::Bot, .. new_radiant_top_creep};
-				let new_radiant_mid_creep = Creep{lane: Lane::Mid, .. new_radiant_top_creep};
-				let new_dire_top_creep = Creep{side: Side::Dire, x: small_random_pos_offset((MAX_COORD as f32 *(7.0/8.0)) as u32),
-					 y: small_random_pos_offset(MAX_COORD / 8), attack_damage: 3, .. new_radiant_top_creep};
-				let new_dire_bot_creep = Creep{lane: Lane::Bot, .. new_dire_top_creep};
-				let new_dire_mid_creep = Creep{lane: Lane::Mid, .. new_dire_top_creep};
+				let new_radiant_bot_creep = Creep{lane: Lane::Bot, position: position.small_random_pos_offset(), .. new_radiant_top_creep};
+				let new_radiant_mid_creep = Creep{lane: Lane::Mid, position: position.small_random_pos_offset(), .. new_radiant_top_creep};
+				let new_dire_top_creep = Creep{side: Side::Dire,
+					 position: position.swap_x_y().small_random_pos_offset(),
+					 attack_damage: 3, .. new_radiant_top_creep};
+				let new_dire_bot_creep = Creep{lane: Lane::Bot, position: position.swap_x_y().small_random_pos_offset(), .. new_dire_top_creep};
+				let new_dire_mid_creep = Creep{lane: Lane::Mid, position: position.swap_x_y().small_random_pos_offset(), .. new_dire_top_creep};
 				game.lane_creeps.push(new_radiant_top_creep);
 				game.lane_creeps.push(new_radiant_bot_creep);
 				game.lane_creeps.push(new_radiant_mid_creep);
@@ -305,13 +464,14 @@ fn main() {
 				game.lane_creeps.push(new_dire_bot_creep);
 			};
 		}
-		println!("game time {}", game.game_time);
-		game.attack_creeps();
+		println!("game time {}", game.game_tick);
+		game.towers_attack();
+		game.lane_creeps_attack();
 		game.kill_off_creeps();
-		game.move_creeps();
+		if game.game_tick % 2 == 0{game.move_creeps();};
 		while let Some(e) = events.next(&mut app.window) {
 			if let Some(r) = e.render_args() {
-				app.update_creeps(&game.lane_creeps, &r);
+				app.update_game(&game, &r);
 				break;
 			}
 		}

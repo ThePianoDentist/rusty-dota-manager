@@ -222,94 +222,94 @@ pub struct GLXPipeRectLimits {
 }
 
 }
-#[allow(dead_code, non_upper_case_globals)] pub const BUFFER_SIZE: types::GLenum = 2;
-#[allow(dead_code, non_upper_case_globals)] pub const DOUBLEBUFFER: types::GLenum = 5;
-#[allow(dead_code, non_upper_case_globals)] pub const PRESERVED_CONTENTS: types::GLenum = 0x801B;
-#[allow(dead_code, non_upper_case_globals)] pub const TRUE_COLOR: types::GLenum = 0x8002;
-#[allow(dead_code, non_upper_case_globals)] pub const RGBA: types::GLenum = 4;
-#[allow(dead_code, non_upper_case_globals)] pub const ACCUM_RED_SIZE: types::GLenum = 14;
-#[allow(dead_code, non_upper_case_globals)] pub const TRANSPARENT_INDEX: types::GLenum = 0x8009;
-#[allow(dead_code, non_upper_case_globals)] pub const RED_SIZE: types::GLenum = 8;
-#[allow(dead_code, non_upper_case_globals)] pub const SAMPLE_BUFFERS: types::GLenum = 100000;
-#[allow(dead_code, non_upper_case_globals)] pub const TRANSPARENT_RGB: types::GLenum = 0x8008;
-#[allow(dead_code, non_upper_case_globals)] pub const PIXMAP_BIT: types::GLenum = 0x00000002;
-#[allow(dead_code, non_upper_case_globals)] pub const AUX_BUFFERS_BIT: types::GLenum = 0x00000010;
+#[allow(dead_code, non_upper_case_globals)] pub const ALPHA_SIZE: types::GLenum = 11;
+#[allow(dead_code, non_upper_case_globals)] pub const RGBA_BIT: types::GLenum = 0x00000001;
+#[allow(dead_code, non_upper_case_globals)] pub const EXTENSIONS: types::GLenum = 0x3;
+#[allow(dead_code, non_upper_case_globals)] pub const BAD_CONTEXT: types::GLenum = 5;
+#[allow(dead_code, non_upper_case_globals)] pub const STENCIL_SIZE: types::GLenum = 13;
+#[allow(dead_code, non_upper_case_globals)] pub const X_VISUAL_TYPE: types::GLenum = 0x22;
+#[allow(dead_code, non_upper_case_globals)] pub const NONE: types::GLenum = 0x8000;
+#[allow(dead_code, non_upper_case_globals)] pub const FRONT_RIGHT_BUFFER_BIT: types::GLenum = 0x00000002;
+#[allow(dead_code, non_upper_case_globals)] pub const ACCUM_ALPHA_SIZE: types::GLenum = 17;
+#[allow(dead_code, non_upper_case_globals)] pub const ACCUM_BUFFER_BIT: types::GLenum = 0x00000080;
+#[allow(dead_code, non_upper_case_globals)] pub const PBUFFER_HEIGHT: types::GLenum = 0x8040;
+#[allow(dead_code, non_upper_case_globals)] pub const HEIGHT: types::GLenum = 0x801E;
+#[allow(dead_code, non_upper_case_globals)] pub const FRONT_LEFT_BUFFER_BIT: types::GLenum = 0x00000001;
+#[allow(dead_code, non_upper_case_globals)] pub const EVENT_MASK: types::GLenum = 0x801F;
+#[allow(dead_code, non_upper_case_globals)] pub const AUX_BUFFERS: types::GLenum = 7;
 #[allow(dead_code, non_upper_case_globals)] pub const X_RENDERABLE: types::GLenum = 0x8012;
 #[allow(dead_code, non_upper_case_globals)] pub const BAD_ENUM: types::GLenum = 7;
-#[allow(dead_code, non_upper_case_globals)] pub const TRANSPARENT_RED_VALUE: types::GLenum = 0x25;
-#[allow(dead_code, non_upper_case_globals)] pub const SAMPLES: types::GLenum = 100001;
+#[allow(dead_code, non_upper_case_globals)] pub const PBUFFER_WIDTH: types::GLenum = 0x8041;
+#[allow(dead_code, non_upper_case_globals)] pub const BAD_VALUE: types::GLenum = 6;
+#[allow(dead_code, non_upper_case_globals)] pub const NON_CONFORMANT_CONFIG: types::GLenum = 0x800D;
+#[allow(dead_code, non_upper_case_globals)] pub const TRANSPARENT_INDEX_VALUE: types::GLenum = 0x24;
+#[allow(dead_code, non_upper_case_globals)] pub const SAMPLE_BUFFERS: types::GLenum = 100000;
+#[allow(dead_code, non_upper_case_globals)] pub const CONFIG_CAVEAT: types::GLenum = 0x20;
+#[allow(dead_code, non_upper_case_globals)] pub const WINDOW_BIT: types::GLenum = 0x00000001;
+#[allow(dead_code, non_upper_case_globals)] pub const RGBA_TYPE: types::GLenum = 0x8014;
+#[allow(dead_code, non_upper_case_globals)] pub const STENCIL_BUFFER_BIT: types::GLenum = 0x00000040;
+#[allow(dead_code, non_upper_case_globals)] pub const TRUE_COLOR: types::GLenum = 0x8002;
+#[allow(dead_code, non_upper_case_globals)] pub const VERSION: types::GLenum = 0x2;
+#[allow(dead_code, non_upper_case_globals)] pub const DIRECT_COLOR: types::GLenum = 0x8003;
+#[allow(dead_code, non_upper_case_globals)] pub const BACK_RIGHT_BUFFER_BIT: types::GLenum = 0x00000008;
+#[allow(dead_code, non_upper_case_globals)] pub const PbufferClobber: types::GLenum = 0;
+#[allow(dead_code, non_upper_case_globals)] pub const SCREEN: types::GLenum = 0x800C;
+#[allow(dead_code, non_upper_case_globals)] pub const VISUAL_ID: types::GLenum = 0x800B;
+#[allow(dead_code, non_upper_case_globals)] pub const BufferSwapComplete: types::GLenum = 1;
+#[allow(dead_code, non_upper_case_globals)] pub const MAX_PBUFFER_HEIGHT: types::GLenum = 0x8017;
+#[allow(dead_code, non_upper_case_globals)] pub const SAVED: types::GLenum = 0x8021;
+#[allow(dead_code, non_upper_case_globals)] pub const WINDOW: types::GLenum = 0x8022;
+#[allow(dead_code, non_upper_case_globals)] pub const GREEN_SIZE: types::GLenum = 9;
+#[allow(dead_code, non_upper_case_globals)] pub const TRANSPARENT_RGB: types::GLenum = 0x8008;
+#[allow(dead_code, non_upper_case_globals)] pub const DOUBLEBUFFER: types::GLenum = 5;
+#[allow(dead_code, non_upper_case_globals)] pub const PIXMAP_BIT: types::GLenum = 0x00000002;
+#[allow(dead_code, non_upper_case_globals)] pub const DEPTH_BUFFER_BIT: types::GLenum = 0x00000020;
+#[allow(dead_code, non_upper_case_globals)] pub const NO_EXTENSION: types::GLenum = 3;
+#[allow(dead_code, non_upper_case_globals)] pub const VENDOR: types::GLenum = 0x1;
+#[allow(dead_code, non_upper_case_globals)] pub const BUFFER_SIZE: types::GLenum = 2;
+#[allow(dead_code, non_upper_case_globals)] pub const FBCONFIG_ID: types::GLenum = 0x8013;
+#[allow(dead_code, non_upper_case_globals)] pub const SLOW_CONFIG: types::GLenum = 0x8001;
+#[allow(dead_code, non_upper_case_globals)] pub const BLUE_SIZE: types::GLenum = 10;
+#[allow(dead_code, non_upper_case_globals)] pub const WIDTH: types::GLenum = 0x801D;
 #[allow(dead_code, non_upper_case_globals)] pub const RENDER_TYPE: types::GLenum = 0x8011;
 #[allow(dead_code, non_upper_case_globals)] pub const DONT_CARE: types::GLenum = 0xFFFFFFFF;
-#[allow(dead_code, non_upper_case_globals)] pub const PBUFFER_HEIGHT: types::GLenum = 0x8040;
-#[allow(dead_code, non_upper_case_globals)] pub const RGBA_TYPE: types::GLenum = 0x8014;
-#[allow(dead_code, non_upper_case_globals)] pub const DAMAGED: types::GLenum = 0x8020;
-#[allow(dead_code, non_upper_case_globals)] pub const BLUE_SIZE: types::GLenum = 10;
-#[allow(dead_code, non_upper_case_globals)] pub const VERSION: types::GLenum = 0x2;
-#[allow(dead_code, non_upper_case_globals)] pub const LEVEL: types::GLenum = 3;
-#[allow(dead_code, non_upper_case_globals)] pub const TRANSPARENT_INDEX_VALUE: types::GLenum = 0x24;
-#[allow(dead_code, non_upper_case_globals)] pub const VENDOR: types::GLenum = 0x1;
-#[allow(dead_code, non_upper_case_globals)] pub const EXTENSION_NAME: &'static str = "GLX";
-#[allow(dead_code, non_upper_case_globals)] pub const X_VISUAL_TYPE: types::GLenum = 0x22;
-#[allow(dead_code, non_upper_case_globals)] pub const SAVED: types::GLenum = 0x8021;
-#[allow(dead_code, non_upper_case_globals)] pub const BAD_CONTEXT: types::GLenum = 5;
-#[allow(dead_code, non_upper_case_globals)] pub const NON_CONFORMANT_CONFIG: types::GLenum = 0x800D;
-#[allow(dead_code, non_upper_case_globals)] pub const ACCUM_ALPHA_SIZE: types::GLenum = 17;
-#[allow(dead_code, non_upper_case_globals)] pub const COLOR_INDEX_BIT: types::GLenum = 0x00000002;
-#[allow(dead_code, non_upper_case_globals)] pub const EXTENSIONS: types::GLenum = 0x3;
-#[allow(dead_code, non_upper_case_globals)] pub const BAD_VISUAL: types::GLenum = 4;
+#[allow(dead_code, non_upper_case_globals)] pub const RED_SIZE: types::GLenum = 8;
 #[allow(dead_code, non_upper_case_globals)] pub const PBUFFER_BIT: types::GLenum = 0x00000004;
-#[allow(dead_code, non_upper_case_globals)] pub const NO_EXTENSION: types::GLenum = 3;
-#[allow(dead_code, non_upper_case_globals)] pub const ACCUM_BLUE_SIZE: types::GLenum = 16;
-#[allow(dead_code, non_upper_case_globals)] pub const EVENT_MASK: types::GLenum = 0x801F;
-#[allow(dead_code, non_upper_case_globals)] pub const WIDTH: types::GLenum = 0x801D;
-#[allow(dead_code, non_upper_case_globals)] pub const BAD_ATTRIBUTE: types::GLenum = 2;
-#[allow(dead_code, non_upper_case_globals)] pub const SCREEN: types::GLenum = 0x800C;
-#[allow(dead_code, non_upper_case_globals)] pub const BAD_SCREEN: types::GLenum = 1;
-#[allow(dead_code, non_upper_case_globals)] pub const STATIC_COLOR: types::GLenum = 0x8005;
-#[allow(dead_code, non_upper_case_globals)] pub const STEREO: types::GLenum = 6;
-#[allow(dead_code, non_upper_case_globals)] pub const VISUAL_ID: types::GLenum = 0x800B;
-#[allow(dead_code, non_upper_case_globals)] pub const SLOW_CONFIG: types::GLenum = 0x8001;
-#[allow(dead_code, non_upper_case_globals)] pub const LARGEST_PBUFFER: types::GLenum = 0x801C;
-#[allow(dead_code, non_upper_case_globals)] pub const GREEN_SIZE: types::GLenum = 9;
-#[allow(dead_code, non_upper_case_globals)] pub const NONE: types::GLenum = 0x8000;
-#[allow(dead_code, non_upper_case_globals)] pub const BufferSwapComplete: types::GLenum = 1;
-#[allow(dead_code, non_upper_case_globals)] pub const FRONT_RIGHT_BUFFER_BIT: types::GLenum = 0x00000002;
-#[allow(dead_code, non_upper_case_globals)] pub const PbufferClobber: types::GLenum = 0;
-#[allow(dead_code, non_upper_case_globals)] pub const TRANSPARENT_ALPHA_VALUE: types::GLenum = 0x28;
-#[allow(dead_code, non_upper_case_globals)] pub const BACK_LEFT_BUFFER_BIT: types::GLenum = 0x00000004;
-#[allow(dead_code, non_upper_case_globals)] pub const PSEUDO_COLOR: types::GLenum = 0x8004;
-#[allow(dead_code, non_upper_case_globals)] pub const TRANSPARENT_TYPE: types::GLenum = 0x23;
-#[allow(dead_code, non_upper_case_globals)] pub const DEPTH_BUFFER_BIT: types::GLenum = 0x00000020;
-#[allow(dead_code, non_upper_case_globals)] pub const MAX_PBUFFER_HEIGHT: types::GLenum = 0x8017;
-#[allow(dead_code, non_upper_case_globals)] pub const TRANSPARENT_GREEN_VALUE: types::GLenum = 0x26;
-#[allow(dead_code, non_upper_case_globals)] pub const ALPHA_SIZE: types::GLenum = 11;
-#[allow(dead_code, non_upper_case_globals)] pub const BAD_VALUE: types::GLenum = 6;
-#[allow(dead_code, non_upper_case_globals)] pub const PBUFFER_CLOBBER_MASK: types::GLenum = 0x08000000;
-#[allow(dead_code, non_upper_case_globals)] pub const GRAY_SCALE: types::GLenum = 0x8006;
-#[allow(dead_code, non_upper_case_globals)] pub const STATIC_GRAY: types::GLenum = 0x8007;
-#[allow(dead_code, non_upper_case_globals)] pub const AUX_BUFFERS: types::GLenum = 7;
-#[allow(dead_code, non_upper_case_globals)] pub const BACK_RIGHT_BUFFER_BIT: types::GLenum = 0x00000008;
-#[allow(dead_code, non_upper_case_globals)] pub const FRONT_LEFT_BUFFER_BIT: types::GLenum = 0x00000001;
-#[allow(dead_code, non_upper_case_globals)] pub const DEPTH_SIZE: types::GLenum = 12;
-#[allow(dead_code, non_upper_case_globals)] pub const ACCUM_BUFFER_BIT: types::GLenum = 0x00000080;
-#[allow(dead_code, non_upper_case_globals)] pub const PBUFFER_WIDTH: types::GLenum = 0x8041;
-#[allow(dead_code, non_upper_case_globals)] pub const HEIGHT: types::GLenum = 0x801E;
-#[allow(dead_code, non_upper_case_globals)] pub const MAX_PBUFFER_PIXELS: types::GLenum = 0x8018;
-#[allow(dead_code, non_upper_case_globals)] pub const DIRECT_COLOR: types::GLenum = 0x8003;
-#[allow(dead_code, non_upper_case_globals)] pub const DRAWABLE_TYPE: types::GLenum = 0x8010;
-#[allow(dead_code, non_upper_case_globals)] pub const COLOR_INDEX_TYPE: types::GLenum = 0x8015;
-#[allow(dead_code, non_upper_case_globals)] pub const WINDOW: types::GLenum = 0x8022;
-#[allow(dead_code, non_upper_case_globals)] pub const WINDOW_BIT: types::GLenum = 0x00000001;
-#[allow(dead_code, non_upper_case_globals)] pub const STENCIL_BUFFER_BIT: types::GLenum = 0x00000040;
-#[allow(dead_code, non_upper_case_globals)] pub const CONFIG_CAVEAT: types::GLenum = 0x20;
-#[allow(dead_code, non_upper_case_globals)] pub const USE_GL: types::GLenum = 1;
-#[allow(dead_code, non_upper_case_globals)] pub const FBCONFIG_ID: types::GLenum = 0x8013;
-#[allow(dead_code, non_upper_case_globals)] pub const MAX_PBUFFER_WIDTH: types::GLenum = 0x8016;
 #[allow(dead_code, non_upper_case_globals)] pub const ACCUM_GREEN_SIZE: types::GLenum = 15;
-#[allow(dead_code, non_upper_case_globals)] pub const STENCIL_SIZE: types::GLenum = 13;
-#[allow(dead_code, non_upper_case_globals)] pub const PBUFFER: types::GLenum = 0x8023;
+#[allow(dead_code, non_upper_case_globals)] pub const STEREO: types::GLenum = 6;
+#[allow(dead_code, non_upper_case_globals)] pub const ACCUM_BLUE_SIZE: types::GLenum = 16;
+#[allow(dead_code, non_upper_case_globals)] pub const TRANSPARENT_INDEX: types::GLenum = 0x8009;
+#[allow(dead_code, non_upper_case_globals)] pub const EXTENSION_NAME: &'static str = "GLX";
+#[allow(dead_code, non_upper_case_globals)] pub const MAX_PBUFFER_WIDTH: types::GLenum = 0x8016;
+#[allow(dead_code, non_upper_case_globals)] pub const ACCUM_RED_SIZE: types::GLenum = 14;
+#[allow(dead_code, non_upper_case_globals)] pub const BAD_SCREEN: types::GLenum = 1;
+#[allow(dead_code, non_upper_case_globals)] pub const LARGEST_PBUFFER: types::GLenum = 0x801C;
+#[allow(dead_code, non_upper_case_globals)] pub const COLOR_INDEX_BIT: types::GLenum = 0x00000002;
+#[allow(dead_code, non_upper_case_globals)] pub const SAMPLES: types::GLenum = 100001;
 #[allow(dead_code, non_upper_case_globals)] pub const TRANSPARENT_BLUE_VALUE: types::GLenum = 0x27;
-#[allow(dead_code, non_upper_case_globals)] pub const RGBA_BIT: types::GLenum = 0x00000001;
+#[allow(dead_code, non_upper_case_globals)] pub const STATIC_COLOR: types::GLenum = 0x8005;
+#[allow(dead_code, non_upper_case_globals)] pub const TRANSPARENT_GREEN_VALUE: types::GLenum = 0x26;
+#[allow(dead_code, non_upper_case_globals)] pub const TRANSPARENT_RED_VALUE: types::GLenum = 0x25;
+#[allow(dead_code, non_upper_case_globals)] pub const TRANSPARENT_TYPE: types::GLenum = 0x23;
+#[allow(dead_code, non_upper_case_globals)] pub const STATIC_GRAY: types::GLenum = 0x8007;
+#[allow(dead_code, non_upper_case_globals)] pub const DAMAGED: types::GLenum = 0x8020;
+#[allow(dead_code, non_upper_case_globals)] pub const MAX_PBUFFER_PIXELS: types::GLenum = 0x8018;
+#[allow(dead_code, non_upper_case_globals)] pub const USE_GL: types::GLenum = 1;
+#[allow(dead_code, non_upper_case_globals)] pub const GRAY_SCALE: types::GLenum = 0x8006;
+#[allow(dead_code, non_upper_case_globals)] pub const LEVEL: types::GLenum = 3;
+#[allow(dead_code, non_upper_case_globals)] pub const PSEUDO_COLOR: types::GLenum = 0x8004;
+#[allow(dead_code, non_upper_case_globals)] pub const COLOR_INDEX_TYPE: types::GLenum = 0x8015;
+#[allow(dead_code, non_upper_case_globals)] pub const PBUFFER: types::GLenum = 0x8023;
+#[allow(dead_code, non_upper_case_globals)] pub const PRESERVED_CONTENTS: types::GLenum = 0x801B;
+#[allow(dead_code, non_upper_case_globals)] pub const DRAWABLE_TYPE: types::GLenum = 0x8010;
+#[allow(dead_code, non_upper_case_globals)] pub const TRANSPARENT_ALPHA_VALUE: types::GLenum = 0x28;
+#[allow(dead_code, non_upper_case_globals)] pub const BAD_ATTRIBUTE: types::GLenum = 2;
+#[allow(dead_code, non_upper_case_globals)] pub const DEPTH_SIZE: types::GLenum = 12;
+#[allow(dead_code, non_upper_case_globals)] pub const BAD_VISUAL: types::GLenum = 4;
+#[allow(dead_code, non_upper_case_globals)] pub const RGBA: types::GLenum = 4;
+#[allow(dead_code, non_upper_case_globals)] pub const AUX_BUFFERS_BIT: types::GLenum = 0x00000010;
+#[allow(dead_code, non_upper_case_globals)] pub const BACK_LEFT_BUFFER_BIT: types::GLenum = 0x00000004;
+#[allow(dead_code, non_upper_case_globals)] pub const PBUFFER_CLOBBER_MASK: types::GLenum = 0x08000000;
 
         #[allow(dead_code, missing_copy_implementations)]
         #[derive(Clone)]
@@ -351,45 +351,45 @@ pub struct GLXPipeRectLimits {
         #[allow(non_camel_case_types, non_snake_case, dead_code)]
         #[derive(Clone)]
         pub struct Glx {
-pub GetVisualFromFBConfig: FnPtr,
-pub GetFBConfigs: FnPtr,
+pub GetFBConfigAttrib: FnPtr,
+pub CreateWindow: FnPtr,
+pub CreateGLXPixmap: FnPtr,
+pub IsDirect: FnPtr,
 pub QueryExtension: FnPtr,
-pub DestroyPixmap: FnPtr,
-pub UseXFont: FnPtr,
-pub SwapBuffers: FnPtr,
+pub CopyContext: FnPtr,
+pub DestroyGLXPixmap: FnPtr,
+pub GetSelectedEvent: FnPtr,
 pub QueryServerString: FnPtr,
-pub ChooseFBConfig: FnPtr,
+pub QueryVersion: FnPtr,
+pub SelectEvent: FnPtr,
+pub QueryDrawable: FnPtr,
+pub WaitX: FnPtr,
+pub DestroyWindow: FnPtr,
 pub MakeCurrent: FnPtr,
+pub ChooseFBConfig: FnPtr,
+pub GetProcAddress: FnPtr,
+pub WaitGL: FnPtr,
+pub GetVisualFromFBConfig: FnPtr,
+pub DestroyPixmap: FnPtr,
+pub DestroyContext: FnPtr,
+pub GetClientString: FnPtr,
+pub GetConfig: FnPtr,
+pub ChooseVisual: FnPtr,
+pub QueryContext: FnPtr,
+pub CreateContext: FnPtr,
+pub SwapBuffers: FnPtr,
+pub GetCurrentDisplay: FnPtr,
+pub QueryExtensionsString: FnPtr,
 pub GetCurrentContext: FnPtr,
 pub CreatePbuffer: FnPtr,
-pub QueryExtensionsString: FnPtr,
-pub CreateWindow: FnPtr,
-pub DestroyContext: FnPtr,
-pub CreateContext: FnPtr,
-pub DestroyGLXPixmap: FnPtr,
-pub QueryContext: FnPtr,
-pub CreateGLXPixmap: FnPtr,
-pub GetSelectedEvent: FnPtr,
-pub GetConfig: FnPtr,
-pub WaitGL: FnPtr,
-pub WaitX: FnPtr,
-pub CreateNewContext: FnPtr,
-pub QueryVersion: FnPtr,
-pub IsDirect: FnPtr,
-pub GetFBConfigAttrib: FnPtr,
-pub DestroyPbuffer: FnPtr,
-pub GetClientString: FnPtr,
-pub CreatePixmap: FnPtr,
-pub GetCurrentDisplay: FnPtr,
-pub MakeContextCurrent: FnPtr,
-pub GetCurrentReadDrawable: FnPtr,
-pub SelectEvent: FnPtr,
-pub CopyContext: FnPtr,
 pub GetCurrentDrawable: FnPtr,
-pub ChooseVisual: FnPtr,
-pub GetProcAddress: FnPtr,
-pub DestroyWindow: FnPtr,
-pub QueryDrawable: FnPtr,
+pub GetFBConfigs: FnPtr,
+pub DestroyPbuffer: FnPtr,
+pub CreatePixmap: FnPtr,
+pub CreateNewContext: FnPtr,
+pub UseXFont: FnPtr,
+pub GetCurrentReadDrawable: FnPtr,
+pub MakeContextCurrent: FnPtr,
 }
 impl Glx {
             /// Load each OpenGL symbol using a custom load function. This allows for the
@@ -400,7 +400,11 @@ impl Glx {
             /// ~~~
             #[allow(dead_code, unused_variables)]
             pub fn load_with<F>(mut loadfn: F) -> Glx where F: FnMut(&str) -> *const __gl_imports::raw::c_void {
-                let mut metaloadfn = |symbol: &str, symbols: &[&str]| {
+                #[inline(never)]
+                fn do_metaloadfn(loadfn: &mut FnMut(&str) -> *const __gl_imports::raw::c_void,
+                                 symbol: &str,
+                                 symbols: &[&str])
+                                 -> *const __gl_imports::raw::c_void {
                     let mut ptr = loadfn(symbol);
                     if ptr.is_null() {
                         for &sym in symbols {
@@ -409,127 +413,130 @@ impl Glx {
                         }
                     }
                     ptr
+                }
+                let mut metaloadfn = |symbol: &str, symbols: &[&str]| {
+                    do_metaloadfn(&mut loadfn, symbol, symbols)
                 };
                 Glx {
-GetVisualFromFBConfig: FnPtr::new(metaloadfn("glXGetVisualFromFBConfig", &[])),
-GetFBConfigs: FnPtr::new(metaloadfn("glXGetFBConfigs", &[])),
+GetFBConfigAttrib: FnPtr::new(metaloadfn("glXGetFBConfigAttrib", &[])),
+CreateWindow: FnPtr::new(metaloadfn("glXCreateWindow", &[])),
+CreateGLXPixmap: FnPtr::new(metaloadfn("glXCreateGLXPixmap", &[])),
+IsDirect: FnPtr::new(metaloadfn("glXIsDirect", &[])),
 QueryExtension: FnPtr::new(metaloadfn("glXQueryExtension", &[])),
-DestroyPixmap: FnPtr::new(metaloadfn("glXDestroyPixmap", &[])),
-UseXFont: FnPtr::new(metaloadfn("glXUseXFont", &[])),
-SwapBuffers: FnPtr::new(metaloadfn("glXSwapBuffers", &[])),
+CopyContext: FnPtr::new(metaloadfn("glXCopyContext", &[])),
+DestroyGLXPixmap: FnPtr::new(metaloadfn("glXDestroyGLXPixmap", &[])),
+GetSelectedEvent: FnPtr::new(metaloadfn("glXGetSelectedEvent", &[])),
 QueryServerString: FnPtr::new(metaloadfn("glXQueryServerString", &[])),
-ChooseFBConfig: FnPtr::new(metaloadfn("glXChooseFBConfig", &[])),
+QueryVersion: FnPtr::new(metaloadfn("glXQueryVersion", &[])),
+SelectEvent: FnPtr::new(metaloadfn("glXSelectEvent", &[])),
+QueryDrawable: FnPtr::new(metaloadfn("glXQueryDrawable", &[])),
+WaitX: FnPtr::new(metaloadfn("glXWaitX", &[])),
+DestroyWindow: FnPtr::new(metaloadfn("glXDestroyWindow", &[])),
 MakeCurrent: FnPtr::new(metaloadfn("glXMakeCurrent", &[])),
+ChooseFBConfig: FnPtr::new(metaloadfn("glXChooseFBConfig", &[])),
+GetProcAddress: FnPtr::new(metaloadfn("glXGetProcAddress", &[])),
+WaitGL: FnPtr::new(metaloadfn("glXWaitGL", &[])),
+GetVisualFromFBConfig: FnPtr::new(metaloadfn("glXGetVisualFromFBConfig", &[])),
+DestroyPixmap: FnPtr::new(metaloadfn("glXDestroyPixmap", &[])),
+DestroyContext: FnPtr::new(metaloadfn("glXDestroyContext", &[])),
+GetClientString: FnPtr::new(metaloadfn("glXGetClientString", &[])),
+GetConfig: FnPtr::new(metaloadfn("glXGetConfig", &[])),
+ChooseVisual: FnPtr::new(metaloadfn("glXChooseVisual", &[])),
+QueryContext: FnPtr::new(metaloadfn("glXQueryContext", &[])),
+CreateContext: FnPtr::new(metaloadfn("glXCreateContext", &[])),
+SwapBuffers: FnPtr::new(metaloadfn("glXSwapBuffers", &[])),
+GetCurrentDisplay: FnPtr::new(metaloadfn("glXGetCurrentDisplay", &[])),
+QueryExtensionsString: FnPtr::new(metaloadfn("glXQueryExtensionsString", &[])),
 GetCurrentContext: FnPtr::new(metaloadfn("glXGetCurrentContext", &[])),
 CreatePbuffer: FnPtr::new(metaloadfn("glXCreatePbuffer", &[])),
-QueryExtensionsString: FnPtr::new(metaloadfn("glXQueryExtensionsString", &[])),
-CreateWindow: FnPtr::new(metaloadfn("glXCreateWindow", &[])),
-DestroyContext: FnPtr::new(metaloadfn("glXDestroyContext", &[])),
-CreateContext: FnPtr::new(metaloadfn("glXCreateContext", &[])),
-DestroyGLXPixmap: FnPtr::new(metaloadfn("glXDestroyGLXPixmap", &[])),
-QueryContext: FnPtr::new(metaloadfn("glXQueryContext", &[])),
-CreateGLXPixmap: FnPtr::new(metaloadfn("glXCreateGLXPixmap", &[])),
-GetSelectedEvent: FnPtr::new(metaloadfn("glXGetSelectedEvent", &[])),
-GetConfig: FnPtr::new(metaloadfn("glXGetConfig", &[])),
-WaitGL: FnPtr::new(metaloadfn("glXWaitGL", &[])),
-WaitX: FnPtr::new(metaloadfn("glXWaitX", &[])),
-CreateNewContext: FnPtr::new(metaloadfn("glXCreateNewContext", &[])),
-QueryVersion: FnPtr::new(metaloadfn("glXQueryVersion", &[])),
-IsDirect: FnPtr::new(metaloadfn("glXIsDirect", &[])),
-GetFBConfigAttrib: FnPtr::new(metaloadfn("glXGetFBConfigAttrib", &[])),
-DestroyPbuffer: FnPtr::new(metaloadfn("glXDestroyPbuffer", &[])),
-GetClientString: FnPtr::new(metaloadfn("glXGetClientString", &[])),
-CreatePixmap: FnPtr::new(metaloadfn("glXCreatePixmap", &[])),
-GetCurrentDisplay: FnPtr::new(metaloadfn("glXGetCurrentDisplay", &[])),
-MakeContextCurrent: FnPtr::new(metaloadfn("glXMakeContextCurrent", &[])),
-GetCurrentReadDrawable: FnPtr::new(metaloadfn("glXGetCurrentReadDrawable", &[])),
-SelectEvent: FnPtr::new(metaloadfn("glXSelectEvent", &[])),
-CopyContext: FnPtr::new(metaloadfn("glXCopyContext", &[])),
 GetCurrentDrawable: FnPtr::new(metaloadfn("glXGetCurrentDrawable", &[])),
-ChooseVisual: FnPtr::new(metaloadfn("glXChooseVisual", &[])),
-GetProcAddress: FnPtr::new(metaloadfn("glXGetProcAddress", &[])),
-DestroyWindow: FnPtr::new(metaloadfn("glXDestroyWindow", &[])),
-QueryDrawable: FnPtr::new(metaloadfn("glXQueryDrawable", &[])),
+GetFBConfigs: FnPtr::new(metaloadfn("glXGetFBConfigs", &[])),
+DestroyPbuffer: FnPtr::new(metaloadfn("glXDestroyPbuffer", &[])),
+CreatePixmap: FnPtr::new(metaloadfn("glXCreatePixmap", &[])),
+CreateNewContext: FnPtr::new(metaloadfn("glXCreateNewContext", &[])),
+UseXFont: FnPtr::new(metaloadfn("glXUseXFont", &[])),
+GetCurrentReadDrawable: FnPtr::new(metaloadfn("glXGetCurrentReadDrawable", &[])),
+MakeContextCurrent: FnPtr::new(metaloadfn("glXMakeContextCurrent", &[])),
 }
         }
 #[allow(non_snake_case, unused_variables, dead_code)]
-            #[inline] pub unsafe fn GetVisualFromFBConfig(&self, dpy: *mut types::Display, config: types::GLXFBConfig) -> *mut types::XVisualInfo { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXFBConfig) -> *mut types::XVisualInfo>(self.GetVisualFromFBConfig.f)(dpy, config) }
+            #[inline] pub unsafe fn GetFBConfigAttrib(&self, dpy: *mut types::Display, config: types::GLXFBConfig, attribute: __gl_imports::raw::c_int, value: *mut __gl_imports::raw::c_int) -> __gl_imports::raw::c_int { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXFBConfig, __gl_imports::raw::c_int, *mut __gl_imports::raw::c_int) -> __gl_imports::raw::c_int>(self.GetFBConfigAttrib.f)(dpy, config, attribute, value) }
 #[allow(non_snake_case, unused_variables, dead_code)]
-            #[inline] pub unsafe fn GetFBConfigs(&self, dpy: *mut types::Display, screen: __gl_imports::raw::c_int, nelements: *mut __gl_imports::raw::c_int) -> *mut types::GLXFBConfig { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, __gl_imports::raw::c_int, *mut __gl_imports::raw::c_int) -> *mut types::GLXFBConfig>(self.GetFBConfigs.f)(dpy, screen, nelements) }
+            #[inline] pub unsafe fn CreateWindow(&self, dpy: *mut types::Display, config: types::GLXFBConfig, win: types::Window, attrib_list: *const __gl_imports::raw::c_int) -> types::GLXWindow { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXFBConfig, types::Window, *const __gl_imports::raw::c_int) -> types::GLXWindow>(self.CreateWindow.f)(dpy, config, win, attrib_list) }
+#[allow(non_snake_case, unused_variables, dead_code)]
+            #[inline] pub unsafe fn CreateGLXPixmap(&self, dpy: *mut types::Display, visual: *mut types::XVisualInfo, pixmap: types::Pixmap) -> types::GLXPixmap { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, *mut types::XVisualInfo, types::Pixmap) -> types::GLXPixmap>(self.CreateGLXPixmap.f)(dpy, visual, pixmap) }
+#[allow(non_snake_case, unused_variables, dead_code)]
+            #[inline] pub unsafe fn IsDirect(&self, dpy: *mut types::Display, ctx: types::GLXContext) -> types::Bool { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXContext) -> types::Bool>(self.IsDirect.f)(dpy, ctx) }
 #[allow(non_snake_case, unused_variables, dead_code)]
             #[inline] pub unsafe fn QueryExtension(&self, dpy: *mut types::Display, errorb: *mut __gl_imports::raw::c_int, event: *mut __gl_imports::raw::c_int) -> types::Bool { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, *mut __gl_imports::raw::c_int, *mut __gl_imports::raw::c_int) -> types::Bool>(self.QueryExtension.f)(dpy, errorb, event) }
 #[allow(non_snake_case, unused_variables, dead_code)]
-            #[inline] pub unsafe fn DestroyPixmap(&self, dpy: *mut types::Display, pixmap: types::GLXPixmap) -> () { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXPixmap) -> ()>(self.DestroyPixmap.f)(dpy, pixmap) }
+            #[inline] pub unsafe fn CopyContext(&self, dpy: *mut types::Display, src: types::GLXContext, dst: types::GLXContext, mask: __gl_imports::raw::c_ulong) -> () { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXContext, types::GLXContext, __gl_imports::raw::c_ulong) -> ()>(self.CopyContext.f)(dpy, src, dst, mask) }
 #[allow(non_snake_case, unused_variables, dead_code)]
-            #[inline] pub unsafe fn UseXFont(&self, font: types::Font, first: __gl_imports::raw::c_int, count: __gl_imports::raw::c_int, list: __gl_imports::raw::c_int) -> () { __gl_imports::mem::transmute::<_, extern "system" fn(types::Font, __gl_imports::raw::c_int, __gl_imports::raw::c_int, __gl_imports::raw::c_int) -> ()>(self.UseXFont.f)(font, first, count, list) }
+            #[inline] pub unsafe fn DestroyGLXPixmap(&self, dpy: *mut types::Display, pixmap: types::GLXPixmap) -> () { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXPixmap) -> ()>(self.DestroyGLXPixmap.f)(dpy, pixmap) }
 #[allow(non_snake_case, unused_variables, dead_code)]
-            #[inline] pub unsafe fn SwapBuffers(&self, dpy: *mut types::Display, drawable: types::GLXDrawable) -> () { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXDrawable) -> ()>(self.SwapBuffers.f)(dpy, drawable) }
+            #[inline] pub unsafe fn GetSelectedEvent(&self, dpy: *mut types::Display, draw: types::GLXDrawable, event_mask: *mut __gl_imports::raw::c_ulong) -> () { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXDrawable, *mut __gl_imports::raw::c_ulong) -> ()>(self.GetSelectedEvent.f)(dpy, draw, event_mask) }
 #[allow(non_snake_case, unused_variables, dead_code)]
             #[inline] pub unsafe fn QueryServerString(&self, dpy: *mut types::Display, screen: __gl_imports::raw::c_int, name: __gl_imports::raw::c_int) -> *const __gl_imports::raw::c_char { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, __gl_imports::raw::c_int, __gl_imports::raw::c_int) -> *const __gl_imports::raw::c_char>(self.QueryServerString.f)(dpy, screen, name) }
 #[allow(non_snake_case, unused_variables, dead_code)]
-            #[inline] pub unsafe fn ChooseFBConfig(&self, dpy: *mut types::Display, screen: __gl_imports::raw::c_int, attrib_list: *const __gl_imports::raw::c_int, nelements: *mut __gl_imports::raw::c_int) -> *mut types::GLXFBConfig { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, __gl_imports::raw::c_int, *const __gl_imports::raw::c_int, *mut __gl_imports::raw::c_int) -> *mut types::GLXFBConfig>(self.ChooseFBConfig.f)(dpy, screen, attrib_list, nelements) }
+            #[inline] pub unsafe fn QueryVersion(&self, dpy: *mut types::Display, maj: *mut __gl_imports::raw::c_int, min: *mut __gl_imports::raw::c_int) -> types::Bool { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, *mut __gl_imports::raw::c_int, *mut __gl_imports::raw::c_int) -> types::Bool>(self.QueryVersion.f)(dpy, maj, min) }
+#[allow(non_snake_case, unused_variables, dead_code)]
+            #[inline] pub unsafe fn SelectEvent(&self, dpy: *mut types::Display, draw: types::GLXDrawable, event_mask: __gl_imports::raw::c_ulong) -> () { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXDrawable, __gl_imports::raw::c_ulong) -> ()>(self.SelectEvent.f)(dpy, draw, event_mask) }
+#[allow(non_snake_case, unused_variables, dead_code)]
+            #[inline] pub unsafe fn QueryDrawable(&self, dpy: *mut types::Display, draw: types::GLXDrawable, attribute: __gl_imports::raw::c_int, value: *mut __gl_imports::raw::c_uint) -> () { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXDrawable, __gl_imports::raw::c_int, *mut __gl_imports::raw::c_uint) -> ()>(self.QueryDrawable.f)(dpy, draw, attribute, value) }
+#[allow(non_snake_case, unused_variables, dead_code)]
+            #[inline] pub unsafe fn WaitX(&self, ) -> () { __gl_imports::mem::transmute::<_, extern "system" fn() -> ()>(self.WaitX.f)() }
+#[allow(non_snake_case, unused_variables, dead_code)]
+            #[inline] pub unsafe fn DestroyWindow(&self, dpy: *mut types::Display, win: types::GLXWindow) -> () { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXWindow) -> ()>(self.DestroyWindow.f)(dpy, win) }
 #[allow(non_snake_case, unused_variables, dead_code)]
             #[inline] pub unsafe fn MakeCurrent(&self, dpy: *mut types::Display, drawable: types::GLXDrawable, ctx: types::GLXContext) -> types::Bool { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXDrawable, types::GLXContext) -> types::Bool>(self.MakeCurrent.f)(dpy, drawable, ctx) }
+#[allow(non_snake_case, unused_variables, dead_code)]
+            #[inline] pub unsafe fn ChooseFBConfig(&self, dpy: *mut types::Display, screen: __gl_imports::raw::c_int, attrib_list: *const __gl_imports::raw::c_int, nelements: *mut __gl_imports::raw::c_int) -> *mut types::GLXFBConfig { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, __gl_imports::raw::c_int, *const __gl_imports::raw::c_int, *mut __gl_imports::raw::c_int) -> *mut types::GLXFBConfig>(self.ChooseFBConfig.f)(dpy, screen, attrib_list, nelements) }
+#[allow(non_snake_case, unused_variables, dead_code)]
+            #[inline] pub unsafe fn GetProcAddress(&self, procName: *const types::GLubyte) -> types::__GLXextFuncPtr { __gl_imports::mem::transmute::<_, extern "system" fn(*const types::GLubyte) -> types::__GLXextFuncPtr>(self.GetProcAddress.f)(procName) }
+#[allow(non_snake_case, unused_variables, dead_code)]
+            #[inline] pub unsafe fn WaitGL(&self, ) -> () { __gl_imports::mem::transmute::<_, extern "system" fn() -> ()>(self.WaitGL.f)() }
+#[allow(non_snake_case, unused_variables, dead_code)]
+            #[inline] pub unsafe fn GetVisualFromFBConfig(&self, dpy: *mut types::Display, config: types::GLXFBConfig) -> *mut types::XVisualInfo { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXFBConfig) -> *mut types::XVisualInfo>(self.GetVisualFromFBConfig.f)(dpy, config) }
+#[allow(non_snake_case, unused_variables, dead_code)]
+            #[inline] pub unsafe fn DestroyPixmap(&self, dpy: *mut types::Display, pixmap: types::GLXPixmap) -> () { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXPixmap) -> ()>(self.DestroyPixmap.f)(dpy, pixmap) }
+#[allow(non_snake_case, unused_variables, dead_code)]
+            #[inline] pub unsafe fn DestroyContext(&self, dpy: *mut types::Display, ctx: types::GLXContext) -> () { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXContext) -> ()>(self.DestroyContext.f)(dpy, ctx) }
+#[allow(non_snake_case, unused_variables, dead_code)]
+            #[inline] pub unsafe fn GetClientString(&self, dpy: *mut types::Display, name: __gl_imports::raw::c_int) -> *const __gl_imports::raw::c_char { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, __gl_imports::raw::c_int) -> *const __gl_imports::raw::c_char>(self.GetClientString.f)(dpy, name) }
+#[allow(non_snake_case, unused_variables, dead_code)]
+            #[inline] pub unsafe fn GetConfig(&self, dpy: *mut types::Display, visual: *mut types::XVisualInfo, attrib: __gl_imports::raw::c_int, value: *mut __gl_imports::raw::c_int) -> __gl_imports::raw::c_int { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, *mut types::XVisualInfo, __gl_imports::raw::c_int, *mut __gl_imports::raw::c_int) -> __gl_imports::raw::c_int>(self.GetConfig.f)(dpy, visual, attrib, value) }
+#[allow(non_snake_case, unused_variables, dead_code)]
+            #[inline] pub unsafe fn ChooseVisual(&self, dpy: *mut types::Display, screen: __gl_imports::raw::c_int, attribList: *mut __gl_imports::raw::c_int) -> *mut types::XVisualInfo { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, __gl_imports::raw::c_int, *mut __gl_imports::raw::c_int) -> *mut types::XVisualInfo>(self.ChooseVisual.f)(dpy, screen, attribList) }
+#[allow(non_snake_case, unused_variables, dead_code)]
+            #[inline] pub unsafe fn QueryContext(&self, dpy: *mut types::Display, ctx: types::GLXContext, attribute: __gl_imports::raw::c_int, value: *mut __gl_imports::raw::c_int) -> __gl_imports::raw::c_int { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXContext, __gl_imports::raw::c_int, *mut __gl_imports::raw::c_int) -> __gl_imports::raw::c_int>(self.QueryContext.f)(dpy, ctx, attribute, value) }
+#[allow(non_snake_case, unused_variables, dead_code)]
+            #[inline] pub unsafe fn CreateContext(&self, dpy: *mut types::Display, vis: *mut types::XVisualInfo, shareList: types::GLXContext, direct: types::Bool) -> types::GLXContext { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, *mut types::XVisualInfo, types::GLXContext, types::Bool) -> types::GLXContext>(self.CreateContext.f)(dpy, vis, shareList, direct) }
+#[allow(non_snake_case, unused_variables, dead_code)]
+            #[inline] pub unsafe fn SwapBuffers(&self, dpy: *mut types::Display, drawable: types::GLXDrawable) -> () { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXDrawable) -> ()>(self.SwapBuffers.f)(dpy, drawable) }
+#[allow(non_snake_case, unused_variables, dead_code)]
+            #[inline] pub unsafe fn GetCurrentDisplay(&self, ) -> *mut types::Display { __gl_imports::mem::transmute::<_, extern "system" fn() -> *mut types::Display>(self.GetCurrentDisplay.f)() }
+#[allow(non_snake_case, unused_variables, dead_code)]
+            #[inline] pub unsafe fn QueryExtensionsString(&self, dpy: *mut types::Display, screen: __gl_imports::raw::c_int) -> *const __gl_imports::raw::c_char { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, __gl_imports::raw::c_int) -> *const __gl_imports::raw::c_char>(self.QueryExtensionsString.f)(dpy, screen) }
 #[allow(non_snake_case, unused_variables, dead_code)]
             #[inline] pub unsafe fn GetCurrentContext(&self, ) -> types::GLXContext { __gl_imports::mem::transmute::<_, extern "system" fn() -> types::GLXContext>(self.GetCurrentContext.f)() }
 #[allow(non_snake_case, unused_variables, dead_code)]
             #[inline] pub unsafe fn CreatePbuffer(&self, dpy: *mut types::Display, config: types::GLXFBConfig, attrib_list: *const __gl_imports::raw::c_int) -> types::GLXPbuffer { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXFBConfig, *const __gl_imports::raw::c_int) -> types::GLXPbuffer>(self.CreatePbuffer.f)(dpy, config, attrib_list) }
 #[allow(non_snake_case, unused_variables, dead_code)]
-            #[inline] pub unsafe fn QueryExtensionsString(&self, dpy: *mut types::Display, screen: __gl_imports::raw::c_int) -> *const __gl_imports::raw::c_char { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, __gl_imports::raw::c_int) -> *const __gl_imports::raw::c_char>(self.QueryExtensionsString.f)(dpy, screen) }
+            #[inline] pub unsafe fn GetCurrentDrawable(&self, ) -> types::GLXDrawable { __gl_imports::mem::transmute::<_, extern "system" fn() -> types::GLXDrawable>(self.GetCurrentDrawable.f)() }
 #[allow(non_snake_case, unused_variables, dead_code)]
-            #[inline] pub unsafe fn CreateWindow(&self, dpy: *mut types::Display, config: types::GLXFBConfig, win: types::Window, attrib_list: *const __gl_imports::raw::c_int) -> types::GLXWindow { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXFBConfig, types::Window, *const __gl_imports::raw::c_int) -> types::GLXWindow>(self.CreateWindow.f)(dpy, config, win, attrib_list) }
-#[allow(non_snake_case, unused_variables, dead_code)]
-            #[inline] pub unsafe fn DestroyContext(&self, dpy: *mut types::Display, ctx: types::GLXContext) -> () { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXContext) -> ()>(self.DestroyContext.f)(dpy, ctx) }
-#[allow(non_snake_case, unused_variables, dead_code)]
-            #[inline] pub unsafe fn CreateContext(&self, dpy: *mut types::Display, vis: *mut types::XVisualInfo, shareList: types::GLXContext, direct: types::Bool) -> types::GLXContext { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, *mut types::XVisualInfo, types::GLXContext, types::Bool) -> types::GLXContext>(self.CreateContext.f)(dpy, vis, shareList, direct) }
-#[allow(non_snake_case, unused_variables, dead_code)]
-            #[inline] pub unsafe fn DestroyGLXPixmap(&self, dpy: *mut types::Display, pixmap: types::GLXPixmap) -> () { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXPixmap) -> ()>(self.DestroyGLXPixmap.f)(dpy, pixmap) }
-#[allow(non_snake_case, unused_variables, dead_code)]
-            #[inline] pub unsafe fn QueryContext(&self, dpy: *mut types::Display, ctx: types::GLXContext, attribute: __gl_imports::raw::c_int, value: *mut __gl_imports::raw::c_int) -> __gl_imports::raw::c_int { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXContext, __gl_imports::raw::c_int, *mut __gl_imports::raw::c_int) -> __gl_imports::raw::c_int>(self.QueryContext.f)(dpy, ctx, attribute, value) }
-#[allow(non_snake_case, unused_variables, dead_code)]
-            #[inline] pub unsafe fn CreateGLXPixmap(&self, dpy: *mut types::Display, visual: *mut types::XVisualInfo, pixmap: types::Pixmap) -> types::GLXPixmap { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, *mut types::XVisualInfo, types::Pixmap) -> types::GLXPixmap>(self.CreateGLXPixmap.f)(dpy, visual, pixmap) }
-#[allow(non_snake_case, unused_variables, dead_code)]
-            #[inline] pub unsafe fn GetSelectedEvent(&self, dpy: *mut types::Display, draw: types::GLXDrawable, event_mask: *mut __gl_imports::raw::c_ulong) -> () { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXDrawable, *mut __gl_imports::raw::c_ulong) -> ()>(self.GetSelectedEvent.f)(dpy, draw, event_mask) }
-#[allow(non_snake_case, unused_variables, dead_code)]
-            #[inline] pub unsafe fn GetConfig(&self, dpy: *mut types::Display, visual: *mut types::XVisualInfo, attrib: __gl_imports::raw::c_int, value: *mut __gl_imports::raw::c_int) -> __gl_imports::raw::c_int { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, *mut types::XVisualInfo, __gl_imports::raw::c_int, *mut __gl_imports::raw::c_int) -> __gl_imports::raw::c_int>(self.GetConfig.f)(dpy, visual, attrib, value) }
-#[allow(non_snake_case, unused_variables, dead_code)]
-            #[inline] pub unsafe fn WaitGL(&self, ) -> () { __gl_imports::mem::transmute::<_, extern "system" fn() -> ()>(self.WaitGL.f)() }
-#[allow(non_snake_case, unused_variables, dead_code)]
-            #[inline] pub unsafe fn WaitX(&self, ) -> () { __gl_imports::mem::transmute::<_, extern "system" fn() -> ()>(self.WaitX.f)() }
-#[allow(non_snake_case, unused_variables, dead_code)]
-            #[inline] pub unsafe fn CreateNewContext(&self, dpy: *mut types::Display, config: types::GLXFBConfig, render_type: __gl_imports::raw::c_int, share_list: types::GLXContext, direct: types::Bool) -> types::GLXContext { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXFBConfig, __gl_imports::raw::c_int, types::GLXContext, types::Bool) -> types::GLXContext>(self.CreateNewContext.f)(dpy, config, render_type, share_list, direct) }
-#[allow(non_snake_case, unused_variables, dead_code)]
-            #[inline] pub unsafe fn QueryVersion(&self, dpy: *mut types::Display, maj: *mut __gl_imports::raw::c_int, min: *mut __gl_imports::raw::c_int) -> types::Bool { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, *mut __gl_imports::raw::c_int, *mut __gl_imports::raw::c_int) -> types::Bool>(self.QueryVersion.f)(dpy, maj, min) }
-#[allow(non_snake_case, unused_variables, dead_code)]
-            #[inline] pub unsafe fn IsDirect(&self, dpy: *mut types::Display, ctx: types::GLXContext) -> types::Bool { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXContext) -> types::Bool>(self.IsDirect.f)(dpy, ctx) }
-#[allow(non_snake_case, unused_variables, dead_code)]
-            #[inline] pub unsafe fn GetFBConfigAttrib(&self, dpy: *mut types::Display, config: types::GLXFBConfig, attribute: __gl_imports::raw::c_int, value: *mut __gl_imports::raw::c_int) -> __gl_imports::raw::c_int { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXFBConfig, __gl_imports::raw::c_int, *mut __gl_imports::raw::c_int) -> __gl_imports::raw::c_int>(self.GetFBConfigAttrib.f)(dpy, config, attribute, value) }
+            #[inline] pub unsafe fn GetFBConfigs(&self, dpy: *mut types::Display, screen: __gl_imports::raw::c_int, nelements: *mut __gl_imports::raw::c_int) -> *mut types::GLXFBConfig { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, __gl_imports::raw::c_int, *mut __gl_imports::raw::c_int) -> *mut types::GLXFBConfig>(self.GetFBConfigs.f)(dpy, screen, nelements) }
 #[allow(non_snake_case, unused_variables, dead_code)]
             #[inline] pub unsafe fn DestroyPbuffer(&self, dpy: *mut types::Display, pbuf: types::GLXPbuffer) -> () { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXPbuffer) -> ()>(self.DestroyPbuffer.f)(dpy, pbuf) }
 #[allow(non_snake_case, unused_variables, dead_code)]
-            #[inline] pub unsafe fn GetClientString(&self, dpy: *mut types::Display, name: __gl_imports::raw::c_int) -> *const __gl_imports::raw::c_char { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, __gl_imports::raw::c_int) -> *const __gl_imports::raw::c_char>(self.GetClientString.f)(dpy, name) }
-#[allow(non_snake_case, unused_variables, dead_code)]
             #[inline] pub unsafe fn CreatePixmap(&self, dpy: *mut types::Display, config: types::GLXFBConfig, pixmap: types::Pixmap, attrib_list: *const __gl_imports::raw::c_int) -> types::GLXPixmap { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXFBConfig, types::Pixmap, *const __gl_imports::raw::c_int) -> types::GLXPixmap>(self.CreatePixmap.f)(dpy, config, pixmap, attrib_list) }
 #[allow(non_snake_case, unused_variables, dead_code)]
-            #[inline] pub unsafe fn GetCurrentDisplay(&self, ) -> *mut types::Display { __gl_imports::mem::transmute::<_, extern "system" fn() -> *mut types::Display>(self.GetCurrentDisplay.f)() }
+            #[inline] pub unsafe fn CreateNewContext(&self, dpy: *mut types::Display, config: types::GLXFBConfig, render_type: __gl_imports::raw::c_int, share_list: types::GLXContext, direct: types::Bool) -> types::GLXContext { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXFBConfig, __gl_imports::raw::c_int, types::GLXContext, types::Bool) -> types::GLXContext>(self.CreateNewContext.f)(dpy, config, render_type, share_list, direct) }
 #[allow(non_snake_case, unused_variables, dead_code)]
-            #[inline] pub unsafe fn MakeContextCurrent(&self, dpy: *mut types::Display, draw: types::GLXDrawable, read: types::GLXDrawable, ctx: types::GLXContext) -> types::Bool { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXDrawable, types::GLXDrawable, types::GLXContext) -> types::Bool>(self.MakeContextCurrent.f)(dpy, draw, read, ctx) }
+            #[inline] pub unsafe fn UseXFont(&self, font: types::Font, first: __gl_imports::raw::c_int, count: __gl_imports::raw::c_int, list: __gl_imports::raw::c_int) -> () { __gl_imports::mem::transmute::<_, extern "system" fn(types::Font, __gl_imports::raw::c_int, __gl_imports::raw::c_int, __gl_imports::raw::c_int) -> ()>(self.UseXFont.f)(font, first, count, list) }
 #[allow(non_snake_case, unused_variables, dead_code)]
             #[inline] pub unsafe fn GetCurrentReadDrawable(&self, ) -> types::GLXDrawable { __gl_imports::mem::transmute::<_, extern "system" fn() -> types::GLXDrawable>(self.GetCurrentReadDrawable.f)() }
 #[allow(non_snake_case, unused_variables, dead_code)]
-            #[inline] pub unsafe fn SelectEvent(&self, dpy: *mut types::Display, draw: types::GLXDrawable, event_mask: __gl_imports::raw::c_ulong) -> () { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXDrawable, __gl_imports::raw::c_ulong) -> ()>(self.SelectEvent.f)(dpy, draw, event_mask) }
-#[allow(non_snake_case, unused_variables, dead_code)]
-            #[inline] pub unsafe fn CopyContext(&self, dpy: *mut types::Display, src: types::GLXContext, dst: types::GLXContext, mask: __gl_imports::raw::c_ulong) -> () { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXContext, types::GLXContext, __gl_imports::raw::c_ulong) -> ()>(self.CopyContext.f)(dpy, src, dst, mask) }
-#[allow(non_snake_case, unused_variables, dead_code)]
-            #[inline] pub unsafe fn GetCurrentDrawable(&self, ) -> types::GLXDrawable { __gl_imports::mem::transmute::<_, extern "system" fn() -> types::GLXDrawable>(self.GetCurrentDrawable.f)() }
-#[allow(non_snake_case, unused_variables, dead_code)]
-            #[inline] pub unsafe fn ChooseVisual(&self, dpy: *mut types::Display, screen: __gl_imports::raw::c_int, attribList: *mut __gl_imports::raw::c_int) -> *mut types::XVisualInfo { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, __gl_imports::raw::c_int, *mut __gl_imports::raw::c_int) -> *mut types::XVisualInfo>(self.ChooseVisual.f)(dpy, screen, attribList) }
-#[allow(non_snake_case, unused_variables, dead_code)]
-            #[inline] pub unsafe fn GetProcAddress(&self, procName: *const types::GLubyte) -> types::__GLXextFuncPtr { __gl_imports::mem::transmute::<_, extern "system" fn(*const types::GLubyte) -> types::__GLXextFuncPtr>(self.GetProcAddress.f)(procName) }
-#[allow(non_snake_case, unused_variables, dead_code)]
-            #[inline] pub unsafe fn DestroyWindow(&self, dpy: *mut types::Display, win: types::GLXWindow) -> () { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXWindow) -> ()>(self.DestroyWindow.f)(dpy, win) }
-#[allow(non_snake_case, unused_variables, dead_code)]
-            #[inline] pub unsafe fn QueryDrawable(&self, dpy: *mut types::Display, draw: types::GLXDrawable, attribute: __gl_imports::raw::c_int, value: *mut __gl_imports::raw::c_uint) -> () { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXDrawable, __gl_imports::raw::c_int, *mut __gl_imports::raw::c_uint) -> ()>(self.QueryDrawable.f)(dpy, draw, attribute, value) }
+            #[inline] pub unsafe fn MakeContextCurrent(&self, dpy: *mut types::Display, draw: types::GLXDrawable, read: types::GLXDrawable, ctx: types::GLXContext) -> types::Bool { __gl_imports::mem::transmute::<_, extern "system" fn(*mut types::Display, types::GLXDrawable, types::GLXDrawable, types::GLXContext) -> types::Bool>(self.MakeContextCurrent.f)(dpy, draw, read, ctx) }
 }
 
         unsafe impl __gl_imports::Send for Glx {}
