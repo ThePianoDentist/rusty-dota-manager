@@ -31,7 +31,7 @@ impl Distance for Position{
 
 pub trait CoordManipulation{
 	fn small_random_pos_offset(&mut self) -> Position;
-	fn swap_x_y(&mut self) -> Position;
+	fn swap_x_y(&self) -> Position;
 	fn alter_y(&self, i32) -> Position;
 	fn alter_x(&self, i32) -> Position;
 }
@@ -44,7 +44,7 @@ impl CoordManipulation for Position{
 		Position{x: new_x, y: new_y}
 	}
 	
-	fn swap_x_y(&mut self) -> Position{
+	fn swap_x_y(&self) -> Position{
 		Position{x: self.y, y: self.x}
 	}
 	
@@ -85,6 +85,8 @@ pub struct Game {
 	pub game_tick: u64,
 	pub lane_creeps: Vec<Creep>,
 	pub towers: [Tower; 18],
+	pub fountains: [Fountain; 2],
+	pub thrones: [Throne; 2]
 }
 	
 pub trait TimeTick {
@@ -112,6 +114,8 @@ pub trait Attack{
 	fn towers_attack(&mut self);
 	
 	fn lane_creeps_attack(&mut self);
+	
+	fn fountains_attack(&mut self);
 }
 
 impl Attack for Game{
@@ -152,9 +156,32 @@ impl Attack for Game{
 					};
 				};
 			}
+			
+			if !our_creep_attacked{
+				for throne in &mut self.thrones{
+					if throne.side != our_side && throne.hp.is_positive() && our_creep.position.distance_between(throne.position) < 12.0{
+						throne.hp -= our_creep.attack_damage as i32;
+						our_creep_attacked = true;
+						break;
+					};
+				};
+			}
 			self.lane_creeps[i].attacking = our_creep_attacked;
 			
 		};
+	}
+	
+	fn fountains_attack(&mut self){
+		for fountain in &mut self.fountains{
+			fountain.attacked = false;
+			for creep in &mut self.lane_creeps{
+				if fountain.position.distance_between(creep.position) < 40.0 && creep.side != fountain.side && !fountain.attacked{
+					creep.hp -= fountain.attack_damage as i32;
+					fountain.attacked = true;
+					break;
+				}
+			}
+		}
 	}
 }
 
@@ -262,14 +289,15 @@ impl KillOff for Game{
 }
 
 pub struct Throne{
-	max_hp: u32,
-	hp: i32,
-	side: Side,
-	position: Position,
+	pub max_hp: u32,
+	pub hp: i32,
+	pub side: Side,
+	pub position: Position,
 }
 
 pub struct Fountain{
-	attack_damage: u32,
-	attacked: bool,
-	position: Position
+	pub side: Side,
+	pub attack_damage: u32,
+	pub attacked: bool,
+	pub position: Position
 }
