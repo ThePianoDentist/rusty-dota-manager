@@ -70,9 +70,23 @@ pub enum Side{
 	Dire
 }
 
+pub struct Game {
+	pub game_tick: u64,
+	pub game_time: f64,
+	pub radiant: Team,
+	pub dire: Team,
+}
+
+pub struct Team{
+	pub side: Side,
+	pub towers: [Tower; 9],
+	pub fountain: Fountain,
+	pub throne: Throne,
+	pub lane_creeps: Vec<Creep>
+}
+
 #[derive(Copy, Clone)]
 pub struct Creep {
-	pub side: Side,
 	pub lane: Lane,
 	pub hp: i32,
 	pub attack_damage: u32,
@@ -81,12 +95,26 @@ pub struct Creep {
 	pub position: Position,
 }
 
-pub struct Game {
-	pub game_tick: u64,
-	pub lane_creeps: Vec<Creep>,
-	pub towers: [Tower; 18],
-	pub fountains: [Fountain; 2],
-	pub thrones: [Throne; 2]
+pub struct Tower{
+	pub lane: Lane,
+	pub tier: u8,
+	pub max_hp: u32,
+	pub hp: i32,
+	pub attack_damage: u32,
+	pub attacking: bool,
+	pub position: Position,
+}
+
+pub struct Throne{
+	pub max_hp: u32,
+	pub hp: i32,
+	pub position: Position,
+}
+
+pub struct Fountain{
+	pub attack_damage: u32,
+	pub attacking: bool,
+	pub position: Position
 }
 	
 pub trait TimeTick {
@@ -99,103 +127,100 @@ impl TimeTick for Game{
 	}
 }
 
-pub struct Tower{
-	pub side: Side,
-	pub lane: Lane,
-	pub tier: u8,
-	pub max_hp: u32,
-	pub hp: i32,
-	pub attack_damage: u32,
-	pub attacked: bool,
-	pub position: Position,
+pub trait ResetAllAttacking{
+	fn reset_all_attacking(&mut self);
 }
 
-pub trait Attack{
-	fn towers_attack(&mut self);
-	
-	fn lane_creeps_attack(&mut self);
-	
-	fn fountains_attack(&mut self);
+impl ResetAllAttacking for Game{
+	fn reset_all_attacking(&mut self){
+		for creep in &mut self.radiant.lane_creeps{creep.attacking = false};
+		for tower in &mut self.radiant.towers{tower.attacking = false};
+		for creep in &mut self.dire.lane_creeps{creep.attacking = false};
+		for tower in &mut self.dire.towers{tower.attacking = false};
+		self.radiant.fountain.attacking = false;
+		self.dire.fountain.attacking = false;
+	}
 }
 
-impl Attack for Game{
-	fn towers_attack(&mut self){
-		for tower in &mut self.towers{
-			tower.attacked = false;
-			if tower.hp.is_positive(){
-				for creep in &mut self.lane_creeps{
-					if tower.position.distance_between(creep.position) < 12.0 && creep.side != tower.side && !tower.attacked{
-						creep.hp -= tower.attack_damage as i32;
-						tower.attacked = true;
+pub trait AttackCreeps{
+	fn attack_enemy_creeps(&mut self, &mut Vec<Creep>);
+}
+
+impl AttackCreeps for Tower{
+	fn attack_enemy_creeps(&mut self, enemy_creeps: &mut Vec<Creep>){
+		if self.hp.is_positive(){
+			for creep in &mut enemy_creeps.iter_mut(){
+				if self.position.distance_between(creep.position) < 12.0 && !self.attacking{
+						creep.hp -= self.attack_damage as i32;
+						self.attacking = true;
 						break;
 					}
+			}
+		}
+	}
+}
+
+impl AttackCreeps for Fountain{
+	fn attack_enemy_creeps(&mut self, enemy_creeps: &mut Vec<Creep>){
+		for creep in &mut enemy_creeps.iter_mut(){
+			if self.position.distance_between(creep.position) < 12.0 && !self.attacking{
+					creep.hp -= self.attack_damage as i32;
+					self.attacking = true;
+					break;
+				}
+		}
+	}
+}
+
+impl AttackCreeps for Creep{
+	fn attack_enemy_creeps(&mut self, enemy_creeps: &mut Vec<Creep>){
+		if self.hp.is_positive(){
+			for creep in &mut enemy_creeps.iter_mut(){
+				if self.position.distance_between(creep.position) < 12.0 && !self.attacking{
+					creep.hp -= self.attack_damage as i32;
+					self.attacking = true;
+					break;
 				}
 			}
 		}
 	}
+}
 	
-	fn lane_creeps_attack(&mut self){
-		let clone = self.lane_creeps.clone();
-		for (i, our_creep) in clone.clone().iter().enumerate(){
-			let mut our_creep_attacked = false;
-			let our_side: Side = our_creep.side;
-			for other_creep in &mut self.lane_creeps{
-				if other_creep.side != our_side && our_creep.position.distance_between(other_creep.position) < 12.0{
-					other_creep.hp -= our_creep.attack_damage as i32;
-					our_creep_attacked = true;
-					break;
-				};
-			}
-			
-			if !our_creep_attacked{
-				for tower in &mut self.towers{
-					if tower.side != our_side && tower.hp.is_positive() && our_creep.position.distance_between(tower.position) < 12.0{
-						tower.hp -= our_creep.attack_damage as i32;
-						our_creep_attacked = true;
-						break;
-					};
-				};
-			}
-			
-			if !our_creep_attacked{
-				for throne in &mut self.thrones{
-					if throne.side != our_side && throne.hp.is_positive() && our_creep.position.distance_between(throne.position) < 12.0{
-						throne.hp -= our_creep.attack_damage as i32;
-						our_creep_attacked = true;
-						break;
-					};
-				};
-			}
-			self.lane_creeps[i].attacking = our_creep_attacked;
-			
+pub trait AttackBuilding{
+	fn attack_towers(&mut self, &mut [Tower]);
+	fn attack_throne(&mut self, &mut Throne);
+}
+
+impl AttackBuilding for Creep{
+	fn attack_towers(&mut self, enemy_towers: &mut [Tower]){
+		for tower in &mut enemy_towers.iter_mut(){
+			if tower.hp.is_positive() && self.position.distance_between(tower.position) < 12.0{
+				tower.hp -= self.attack_damage as i32;
+				self.attacking = true;
+				break;
+			};
 		};
 	}
 	
-	fn fountains_attack(&mut self){
-		for fountain in &mut self.fountains{
-			fountain.attacked = false;
-			for creep in &mut self.lane_creeps{
-				if fountain.position.distance_between(creep.position) < 40.0 && creep.side != fountain.side && !fountain.attacked{
-					creep.hp -= fountain.attack_damage as i32;
-					fountain.attacked = true;
-					break;
-				}
-			}
-		}
+	fn attack_throne(&mut self, throne: &mut Throne){
+		if throne.hp.is_positive() && self.position.distance_between(throne.position) < 12.0{
+			throne.hp -= self.attack_damage as i32;
+			self.attacking = true;
+		};
 	}
 }
 
 pub trait Move{
-	fn move_top_creeps_radiant(&mut self);
-	fn move_mid_creeps_radiant(&mut self);
-	fn move_bot_creeps_radiant(&mut self);
-	fn move_top_creeps_dire(&mut self);
-	fn move_mid_creeps_dire(&mut self);
-	fn move_bot_creeps_dire(&mut self);
+	fn move_top_creep_radiant(&mut self);
+	fn move_mid_creep_radiant(&mut self);
+	fn move_bot_creep_radiant(&mut self);
+	fn move_top_creep_dire(&mut self);
+	fn move_mid_creep_dire(&mut self);
+	fn move_bot_creep_dire(&mut self);
 }
 
 impl Move for Creep{
-	fn move_top_creeps_radiant(&mut self){
+	fn move_top_creep_radiant(&mut self){
 		if self.position.y > (MAX_COORD / 8){
 			self.position.y -= 1;
 		}
@@ -204,7 +229,7 @@ impl Move for Creep{
 		}
 	}
 
-	fn move_mid_creeps_radiant(&mut self){
+	fn move_mid_creep_radiant(&mut self){
 		if 0 < self.position.y{
 			if self.position.x < MAX_COORD{
 				self.position.y -= 1;
@@ -213,7 +238,7 @@ impl Move for Creep{
 		};
 	}
 
-	fn move_bot_creeps_radiant(&mut self){
+	fn move_bot_creep_radiant(&mut self){
 		if self.position.x < (MAX_COORD as f32 *(7.0/8.0)) as u32{
 			self.position.x += 1;
 		}
@@ -224,7 +249,7 @@ impl Move for Creep{
 		}
 	}
 
-	fn move_mid_creeps_dire(&mut self){
+	fn move_mid_creep_dire(&mut self){
 		if self.position.y  < MAX_COORD{
 			if 0 < self.position.x{
 				self.position.y += 1;
@@ -233,7 +258,7 @@ impl Move for Creep{
 		};
 	}
 
-	fn move_bot_creeps_dire(&mut self){
+	fn move_bot_creep_dire(&mut self){
 		if self.position.y < (MAX_COORD as f32 *(7.0/8.0)) as u32{
 			self.position.y += 1;
 		}
@@ -244,7 +269,7 @@ impl Move for Creep{
 		}
 	}
 
-	fn move_top_creeps_dire(&mut self){
+	fn move_top_creep_dire(&mut self){
 		if self.position.x > MAX_COORD / 8{
 			self.position.x -= 1;
 		}
@@ -255,23 +280,30 @@ impl Move for Creep{
 }
 
 pub trait MoveCreeps{
-	fn move_creeps(&mut self);
+	fn move_creeps_radiant(&mut self);
+	fn move_creeps_dire(&mut self);
 }
 
-impl MoveCreeps for Game{
-	fn move_creeps(&mut self){
+impl MoveCreeps for Team{
+	fn move_creeps_radiant(&mut self){
 		for lane_creep in &mut self.lane_creeps{
 			if !lane_creep.attacking{
-				match lane_creep.side{
-					Side::Radiant => match lane_creep.lane{
-						Lane::Top => lane_creep.move_top_creeps_radiant(),
-						Lane::Mid => lane_creep.move_mid_creeps_radiant(),
-						Lane::Bot => lane_creep.move_bot_creeps_radiant()},
-					_ => match lane_creep.lane{
-							Lane::Top => lane_creep.move_top_creeps_dire(),
-							Lane::Mid => lane_creep.move_mid_creeps_dire(),
-							Lane::Bot => lane_creep.move_bot_creeps_dire()
-						},
+				match lane_creep.lane{
+					Lane::Top => lane_creep.move_top_creep_radiant(),
+					Lane::Mid => lane_creep.move_mid_creep_radiant(),
+					Lane::Bot => lane_creep.move_bot_creep_radiant(),
+				};
+			}
+		}
+	}
+	
+	fn move_creeps_dire(&mut self){
+		for lane_creep in &mut self.lane_creeps{
+			if !lane_creep.attacking{
+				match lane_creep.lane{
+					Lane::Top => lane_creep.move_top_creep_dire(),
+					Lane::Mid => lane_creep.move_mid_creep_dire(),
+					Lane::Bot => lane_creep.move_bot_creep_dire(),
 				};
 			}
 		}
@@ -284,20 +316,7 @@ pub trait KillOff{
 
 impl KillOff for Game{
 	fn kill_off_creeps(&mut self){
-		&mut self.lane_creeps.retain(|&i| i.hp > 0);
+		self.radiant.lane_creeps.retain(|&i| i.hp > 0);
+		self.dire.lane_creeps.retain(|&i| i.hp > 0);
 	}
-}
-
-pub struct Throne{
-	pub max_hp: u32,
-	pub hp: i32,
-	pub side: Side,
-	pub position: Position,
-}
-
-pub struct Fountain{
-	pub side: Side,
-	pub attack_damage: u32,
-	pub attacked: bool,
-	pub position: Position
 }
