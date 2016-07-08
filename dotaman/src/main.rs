@@ -73,74 +73,78 @@ impl<'a> App<'a>{
 			image(background, c.transform, gl);
 		});
 		
-		for tower in &game.radiant.towers{
-			if tower.hp.is_positive(){
-				self.gl.draw(args.viewport(), |c, gl| {
-					let transform = c.transform.trans(tower.position.x as f64, tower.position.y as f64);
-											   
-					let square = rectangle::centered_square(0.0, 0.0, 5.0);
-					rectangle(DARK_GREEN, square, transform, gl);
-					
-					if tower.attacking{ellipse(YELLOW, rectangle::centered_square(0.0, 0.0, 2.0),
-						 c.transform.trans(tower.position.x as f64, tower.position.y as f64), gl);};
-				});
-			}
-		};
-		
-		for tower in &game.dire.towers{
-			if tower.hp.is_positive(){
-				self.gl.draw(args.viewport(), |c, gl| {
-					let transform = c.transform.trans(tower.position.x as f64, tower.position.y as f64);
-											   
-					let square = rectangle::centered_square(0.0, 0.0, 5.0);
-					rectangle(DARK_RED, square, transform, gl);
-					
-					if tower.attacking{ellipse(YELLOW, rectangle::centered_square(0.0, 0.0, 2.0),
-						 c.transform.trans(tower.position.x as f64, tower.position.y as f64), gl);};
-				});
-			}
-		};
-		
-		self.gl.draw(args.viewport(), |c, gl| {
-			let transform_dire = c.transform.trans(game.dire.throne.position.x as f64, game.dire.throne.position.y as f64);
-			let transform_rad = c.transform.trans(game.radiant.throne.position.x as f64, game.radiant.throne.position.y as f64);					   
-			let square = rectangle::centered_square(0.0, 0.0, 15.0);
-			ellipse(DARK_RED, square, transform_dire, gl);
-			ellipse(DARK_GREEN, square, transform_rad, gl);
-		});
-		
-		self.gl.draw(args.viewport(), |c, gl| {
-			let transform_dire = c.transform.trans(game.dire.fountain.position.x as f64, game.dire.fountain.position.y as f64);
-			let transform_rad = c.transform.trans(game.radiant.fountain.position.x as f64, game.radiant.fountain.position.y as f64);
-									   
-			let square = rectangle::centered_square(0.0, 0.0, 5.0);
-			
-			rectangle(DARK_RED, square, transform_dire, gl);
-			rectangle(DARK_GREEN, square, transform_rad, gl);
-		});
-		
-		
-		
-        for creep in &game.radiant.lane_creeps{
-			self.gl.draw(args.viewport(), |c, gl| {
-				let transform = c.transform.trans(creep.position.x as f64, creep.position.y as f64);
-										   
-				let square = rectangle::centered_square(0.0, 0.0, 3.5);
-				ellipse(GREEN, square, transform, gl);
-			});
+		for i in 0..2{
+			let team = &game.teams[i];
+			for tower in team.towers.iter(){
+				if tower.hp.is_positive(){
+					self.gl.draw(args.viewport(), |c, gl| {
+						let transform = c.transform.trans(tower.position.x as f64, tower.position.y as f64);
+												   
+						let square = rectangle::centered_square(0.0, 0.0, 5.0);
+						match team.side{
+							Side::Radiant  => rectangle(DARK_GREEN, square, transform, gl),
+							Side::Dire => rectangle(DARK_RED, square, transform, gl)
+						}
+						
+						if tower.attacked_this_turn{ellipse(YELLOW, rectangle::centered_square(0.0, 0.0, 2.0),
+							 c.transform.trans(tower.position.x as f64, tower.position.y as f64), gl);};
+					});
+				}
+			};
 		}
 		
-		for creep in &game.dire.lane_creeps{
-			self.gl.draw(args.viewport(), |c, gl| {
-				let transform = c.transform.trans(creep.position.x as f64, creep.position.y as f64);
-										   
-				let square = rectangle::centered_square(0.0, 0.0, 3.5);
-				ellipse(RED, square, transform, gl);
-			});
+		self.gl.draw(args.viewport(), |c, gl| {
+			for i in 0..2{
+				let ref team = game.teams[i];
+				let transform = c.transform.trans(team.throne.position.x as f64, team.throne.position.y as f64);
+				let square = rectangle::centered_square(0.0, 0.0, 15.0);
+				match team.side{
+					Side::Radiant  => ellipse(DARK_GREEN, square, transform, gl),
+					Side::Dire => ellipse(DARK_RED, square, transform, gl)
+				}
+			}
+		});
+		
+		self.gl.draw(args.viewport(), |c, gl| {
+			for i in 0..2{
+				let ref team = game.teams[i];
+				let ref fountain = team.fountain;
+				let transform = c.transform.trans(fountain.position.x as f64, fountain.position.y as f64);
+				let square = rectangle::centered_square(0.0, 0.0, 5.0);
+				match team.side{	
+					Side::Dire => rectangle(DARK_RED, square, transform, gl),
+					Side::Radiant => rectangle(DARK_GREEN, square, transform, gl)
+				}
+				if fountain.attacked_this_turn{ellipse(YELLOW, rectangle::centered_square(0.0, 0.0, 2.0),
+							 c.transform.trans(fountain.position.x as f64, fountain.position.y as f64), gl);};
+			}
+		});
+		
+		
+		for i in 0..2{
+			let team = &game.teams[i];
+			for creep in &team.lane_creeps{
+				self.gl.draw(args.viewport(), |c, gl| {
+					let transform = c.transform.trans(creep.position.x as f64, creep.position.y as f64);
+											   
+					let square = rectangle::centered_square(0.0, 0.0, 3.5);
+					match team.side{
+						Side::Radiant => ellipse(GREEN, square, transform, gl),
+						Side::Dire => ellipse(RED, square, transform, gl)
+					}
+				});
+			}
+			
+			for hero in &team.heroes{
+				self.gl.draw(args.viewport(), |c, gl| {
+					let transform = c.transform.trans(hero.position.x as f64, hero.position.y as f64).trans(-25.0, -25.0);		   
+					image(&hero.pic, transform, gl);
+				});
+			}
 		}
 	}
     
-    fn win_game(&mut self, game: &Game, args: &RenderArgs){
+    fn win_game(&mut self, side: &Side, args: &RenderArgs){
 		let assets = find_folder::Search::ParentsThenKids(3, 3)
 			.for_folder("assets").unwrap();
 		let freetype = freetype::Library::init().unwrap();
@@ -152,9 +156,16 @@ impl<'a> App<'a>{
 					let transform = c.transform.trans(0.0, 100.0);
 
 					clear(color::WHITE, gl);
-					render_text(&mut face, gl, transform, "RADIANT VICTORY!");
+					match *side{
+						Side::Dire => render_text(&mut face, gl, transform, "RADIANT VICTORY!"),
+						Side::Radiant => render_text(&mut face, gl, transform, "Dire VICTORY!")
+					}
 		});
 	}
+}
+
+fn wtf(i: usize) -> usize{
+	((i as i32 - 1).abs()) as usize
 }
 
 fn main() {
@@ -178,6 +189,14 @@ fn main() {
     let assets = find_folder::Search::ParentsThenKids(3, 3)
         .for_folder("assets").unwrap();
     let rust_logo = assets.join("rsz_dota_minimap.jpg");
+    let rubick_pic = gTexture::from_path(
+					 assets.join("rubick.jpg"),
+	).unwrap();
+	
+	let rubick_pic_2 = gTexture::from_path(
+					 assets.join("rubick2.jpg"),
+	).unwrap();
+	
     let rust_logo = gTexture::from_path(
             //&mut window.factory,  these are here for piston window but not gl window
             &rust_logo,
@@ -207,7 +226,9 @@ fn main() {
 			max_hp: 200,
 			hp: 200,
 			attack_damage: 30,
-			attacking: false,
+			attacked_this_turn: false,
+			attack_cooldown: 3.0,
+			attack_rate: 3.0,
 			position: Position{x: (MAX_COORD/2),
 				y: (MAX_COORD/2),
 				},
@@ -242,7 +263,7 @@ fn main() {
 	let t2_dire_bot_tower = Tower{tier: 2, position: t3_dire_bot_tower.position.alter_y((MAX_COORD/6) as i32), .. t3_dire_bot_tower};
 	let t1_dire_bot_tower = Tower{tier: 1, position: t2_dire_bot_tower.position.alter_y((MAX_COORD/6) as i32), .. t2_dire_bot_tower};
 	
-	let radiant_fount = Fountain{attack_damage: 300,	attacking: false,
+	let radiant_fount = Fountain{attack_damage: 300,	attack_cooldown: 1.3, attack_rate: 1.3, attacked_this_turn: false,//test with multiple of so get 0
 		 position: Position{x: (1.0*(MAX_COORD as f32)/16.7) as u32, y:MAX_COORD - (1.0*(MAX_COORD as f32)/16.7) as u32}};
 		 
 	let dire_fount = Fountain{position: radiant_fount.position.swap_x_y(), .. radiant_fount};
@@ -252,19 +273,45 @@ fn main() {
 		 
 	let dire_throne = Throne{position: radiant_throne.position.swap_x_y(), .. radiant_throne};
 	
+	let rubick = Hero{name: "rubick",
+					pic: rubick_pic,
+					base_int: 27,
+					base_str: 19,
+					base_agi: 14,
+					int_gain: 2.4,
+					str_gain: 1.5,
+					agi_gain: 1.6,
+					base_attack_damage: 27.0, // 17-27
+					move_speed: 290,
+					
+					gold: 650.0,
+					hp: 200.0,
+					hp_regen: 0.25,
+					mana: 50.0,
+					mana_regen: 0.01,
+					attack_cooldown: -0.0001,
+					attack_rate: 1.0,
+					position: radiant_fount.position,
+					level: 1,
+					armour: -1.0,
+		};
+		
+	let not_rubick = Hero{position: dire_fount.position, pic: rubick_pic_2, .. rubick};
+	
 	let radiant = Team{side: Side::Radiant, towers: [t1_rad_tower, t2_rad_tower, t3_rad_tower, t3_rad_top_tower,
 		t2_rad_top_tower, t1_rad_top_tower, t3_rad_bot_tower, t2_rad_bot_tower, t1_rad_bot_tower],
-		fountain: radiant_fount, throne: radiant_throne, lane_creeps: vec!()};
+		fountain: radiant_fount, throne: radiant_throne, lane_creeps: vec!(), heroes: [rubick]};
 		
 	let dire = Team{side: Side::Dire, towers: [tower, t2_dire_tower, t3_dire_tower, t3_dire_top_tower, t2_dire_top_tower,
 		 t1_dire_top_tower, t3_dire_bot_tower, t2_dire_bot_tower, t1_dire_bot_tower],
-		fountain: dire_fount, throne: dire_throne, lane_creeps: vec!()};
+		fountain: dire_fount, throne: dire_throne, lane_creeps: vec!(), heroes: [not_rubick]};
 		 
 	let mut game = Game{
 		game_tick: 0,
 		game_time: 0.0,
-		radiant: radiant,
-		dire: dire
+		teams: [radiant, dire]
+		//radiant: radiant,
+		//dire: dire
 	};
 	
 	'outer: loop {
@@ -278,8 +325,10 @@ fn main() {
 					lane: Lane::Top,
 					hp: 150,
 					attack_damage: 5,
-					attacking: false,	
+					attack_cooldown: 1.6,
+					attack_rate: 1.6,
 					melee_attack: true,
+					can_move: true,
 					position: position.small_random_pos_offset(),
 				};
 				let new_radiant_bot_creep = Creep{lane: Lane::Bot, position: position.small_random_pos_offset(), .. new_radiant_top_creep};
@@ -288,58 +337,61 @@ fn main() {
 					 attack_damage: 3, .. new_radiant_top_creep};
 				let new_dire_bot_creep = Creep{lane: Lane::Bot, position: position.swap_x_y().small_random_pos_offset(), .. new_dire_top_creep};
 				let new_dire_mid_creep = Creep{lane: Lane::Mid, position: position.swap_x_y().small_random_pos_offset(), .. new_dire_top_creep};
-				game.radiant.lane_creeps.push(new_radiant_top_creep);
-				game.radiant.lane_creeps.push(new_radiant_bot_creep);
-				game.radiant.lane_creeps.push(new_radiant_mid_creep);
-				game.dire.lane_creeps.push(new_dire_top_creep);
-				game.dire.lane_creeps.push(new_dire_mid_creep);		
-				game.dire.lane_creeps.push(new_dire_bot_creep);
+				game.teams[0].lane_creeps.push(new_radiant_top_creep);
+				game.teams[0].lane_creeps.push(new_radiant_bot_creep);
+				game.teams[0].lane_creeps.push(new_radiant_mid_creep);
+				game.teams[1].lane_creeps.push(new_dire_top_creep);
+				game.teams[1].lane_creeps.push(new_dire_mid_creep);		
+				game.teams[1].lane_creeps.push(new_dire_bot_creep);
 			};
 		}
 		println!("game time {}", game.game_tick);
 		
-		game.reset_all_attacking();
+		game.reset_all_attack_cooldown();
 		
-		game.radiant.fountain.attack_enemy_creeps(&mut game.dire.lane_creeps);
-		for tower in &mut game.radiant.towers{
-			tower.attack_enemy_creeps(&mut game.dire.lane_creeps)
-		};
-		game.dire.fountain.attack_enemy_creeps(&mut game.radiant.lane_creeps);
-		for tower in &mut game.dire.towers{
-			tower.attack_enemy_creeps(&mut game.radiant.lane_creeps)
-		}
-		for creep in &mut game.radiant.lane_creeps{
-			creep.attack_enemy_creeps(&mut game.dire.lane_creeps);
-			if !creep.attacking{
-				creep.attack_towers(&mut game.dire.towers)
-			}
-			if !creep.attacking{creep.attack_throne(&mut game.dire.throne)}
+		for i in 0..2{game.teams[i].fountain.attack_enemy_creeps(&mut game.teams[wtf(i)].lane_creeps)};
+		
+		for i in 0..2{
+			for tower in &mut game.teams[i].towers{
+				tower.attack_enemy_creeps(&mut game.teams[wtf(i)].lane_creeps)
+			};
 		}
 		
-		for creep in &mut game.dire.lane_creeps{
-			creep.attack_enemy_creeps(&mut game.radiant.lane_creeps);
-			if !creep.attacking{
-				creep.attack_towers(&mut game.radiant.towers)
+		for i in 0..2{
+			let (rad, dire) = game.teams.split_at_mut(1);
+			let (mut us, mut them) = match i{
+				0 => (&mut rad[0], &mut dire[0]),
+				1 => (&mut dire[0], &mut rad[0]),
+				_ => panic!("I'm pretty sure this is impossible")
+			};
+			for creep in &mut us.lane_creeps{
+				creep.attack_enemy_creeps(&mut them.lane_creeps);
+				if creep.attack_cooldown < 0.0{continue};
+				creep.attack_towers(&mut them.towers);
+				if creep.attack_cooldown < 0.0{continue};
+				creep.attack_throne(&mut them.throne);
 			}
-			if !creep.attacking{creep.attack_throne(&mut game.radiant.throne)}
 		}
+		
 		game.kill_off_creeps();
-		if game.game_tick % 2 == 0{game.radiant.move_creeps_radiant();
-			game.dire.move_creeps_dire()};
+		if game.game_tick % 2 == 0 {game.teams[0].move_creeps_radiant();
+			game.teams[1].move_creeps_dire()};
 		while let Some(e) = events.next(&mut app.window) {
 			if let Some(r) = e.render_args() {
 				app.update_game(&game, &r);
 				break;
 			}
 		}
-		if !game.radiant.throne.hp.is_positive() || !game.dire.throne.hp.is_positive(){
-			'valid: while let Some(e) = events.next(&mut app.window){
-				if let Some(r) = e.render_args() {
-					app.win_game(&game, &r)
-				} 
+		for team in game.teams.iter(){
+			if !team.throne.hp.is_positive(){
+				while let Some(e) = events.next(&mut app.window){
+					if let Some(r) = e.render_args() {
+						app.win_game(&team.side, &r)
+					} 
+				}
+				break 'outer;
 			}
-			break 'outer;
-		}
+		};
 		game.game_tick += 1;
 	}
 }

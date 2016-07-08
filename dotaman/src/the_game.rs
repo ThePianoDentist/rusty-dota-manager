@@ -1,5 +1,7 @@
 extern crate rand;
+extern crate opengl_graphics;
 use rand::Rng;
+//use opengl_graphics::{Texture as gTexture};
 
 pub const MAX_COORD: u32  = 600;
 
@@ -73,8 +75,7 @@ pub enum Side{
 pub struct Game {
 	pub game_tick: u64,
 	pub game_time: f64,
-	pub radiant: Team,
-	pub dire: Team,
+	pub teams: [Team; 2]
 }
 
 pub struct Team{
@@ -82,7 +83,8 @@ pub struct Team{
 	pub towers: [Tower; 9],
 	pub fountain: Fountain,
 	pub throne: Throne,
-	pub lane_creeps: Vec<Creep>
+	pub lane_creeps: Vec<Creep>,
+	pub heroes: [Hero; 1]
 }
 
 #[derive(Copy, Clone)]
@@ -91,17 +93,22 @@ pub struct Creep {
 	pub hp: i32,
 	pub attack_damage: u32,
 	pub melee_attack: bool,
-	pub attacking: bool,
+	pub attack_cooldown: f32,
+	pub attack_rate: f32,
 	pub position: Position,
+	pub can_move: bool,
 }
 
+/// Buildings
 pub struct Tower{
 	pub lane: Lane,
 	pub tier: u8,
 	pub max_hp: u32,
 	pub hp: i32,
 	pub attack_damage: u32,
-	pub attacking: bool,
+	pub attack_cooldown: f32,
+	pub attack_rate: f32,
+	pub attacked_this_turn: bool,
 	pub position: Position,
 }
 
@@ -113,8 +120,39 @@ pub struct Throne{
 
 pub struct Fountain{
 	pub attack_damage: u32,
-	pub attacking: bool,
+	pub attack_cooldown: f32,
+	pub attack_rate: f32,
+	pub attacked_this_turn: bool,
 	pub position: Position
+}
+
+/// Heros
+pub struct Hero{
+	pub name: &'static str,
+	pub pic: opengl_graphics::Texture,
+	pub level: u32,
+	pub base_int: i32,
+	pub base_str: i32,
+	pub base_agi: i32,
+	pub int_gain: f32,
+	pub str_gain: f32,
+	pub agi_gain: f32,
+	pub base_attack_damage: f32,
+	pub move_speed: i32,
+	pub hp_regen: f32,
+	pub mana_regen: f32,
+	
+	pub gold: f32,
+	pub hp: f32,
+	pub mana: f32,
+	pub attack_cooldown: f32,
+	pub attack_rate: f32,
+	pub position: Position,
+	pub armour: f32,
+}
+
+pub struct Skill{
+	pub name: str,
 }
 	
 pub trait TimeTick {
@@ -128,17 +166,16 @@ impl TimeTick for Game{
 }
 
 pub trait ResetAllAttacking{
-	fn reset_all_attacking(&mut self);
+	fn reset_all_attack_cooldown(&mut self);
 }
 
 impl ResetAllAttacking for Game{
-	fn reset_all_attacking(&mut self){
-		for creep in &mut self.radiant.lane_creeps{creep.attacking = false};
-		for tower in &mut self.radiant.towers{tower.attacking = false};
-		for creep in &mut self.dire.lane_creeps{creep.attacking = false};
-		for tower in &mut self.dire.towers{tower.attacking = false};
-		self.radiant.fountain.attacking = false;
-		self.dire.fountain.attacking = false;
+	fn reset_all_attack_cooldown(&mut self){
+		for i in 0..2{
+			for creep in &mut self.teams[i].lane_creeps{creep.can_move = true;};
+			for tower in &mut self.teams[i].towers{tower.attacked_this_turn = false;};
+			self.teams[i].fountain.attacked_this_turn = false;
+		}
 	}
 }
 
@@ -150,11 +187,15 @@ impl AttackCreeps for Tower{
 	fn attack_enemy_creeps(&mut self, enemy_creeps: &mut Vec<Creep>){
 		if self.hp.is_positive(){
 			for creep in &mut enemy_creeps.iter_mut(){
-				if self.position.distance_between(creep.position) < 12.0 && !self.attacking{
+				if self.position.distance_between(creep.position) < 12.0{
+					self.attack_cooldown -= 1.;
+					if self.attack_cooldown < 0.0{
 						creep.hp -= self.attack_damage as i32;
-						self.attacking = true;
-						break;
+						self.attacked_this_turn = true;
+						self.attack_cooldown += self.attack_rate;
 					}
+					break;
+				}
 			}
 		}
 	}
@@ -163,11 +204,15 @@ impl AttackCreeps for Tower{
 impl AttackCreeps for Fountain{
 	fn attack_enemy_creeps(&mut self, enemy_creeps: &mut Vec<Creep>){
 		for creep in &mut enemy_creeps.iter_mut(){
-			if self.position.distance_between(creep.position) < 12.0 && !self.attacking{
+			if self.position.distance_between(creep.position) < 12.0{
+				self.attack_cooldown -= 1.;
+				if self.attack_cooldown < 0.0{
 					creep.hp -= self.attack_damage as i32;
-					self.attacking = true;
-					break;
+					self.attacked_this_turn = true;
+					self.attack_cooldown += self.attack_rate;
 				}
+				break;
+			}
 		}
 	}
 }
@@ -176,9 +221,13 @@ impl AttackCreeps for Creep{
 	fn attack_enemy_creeps(&mut self, enemy_creeps: &mut Vec<Creep>){
 		if self.hp.is_positive(){
 			for creep in &mut enemy_creeps.iter_mut(){
-				if self.position.distance_between(creep.position) < 12.0 && !self.attacking{
-					creep.hp -= self.attack_damage as i32;
-					self.attacking = true;
+				if self.position.distance_between(creep.position) < 12.0{
+					self.attack_cooldown -= 1.;
+					self.can_move = false;
+					if self.attack_cooldown < 0.0{
+						creep.hp -= self.attack_damage as i32;
+						self.attack_cooldown += self.attack_rate; //bug with attacking too fast?
+					}
 					break;
 				}
 			}
@@ -195,8 +244,12 @@ impl AttackBuilding for Creep{
 	fn attack_towers(&mut self, enemy_towers: &mut [Tower]){
 		for tower in &mut enemy_towers.iter_mut(){
 			if tower.hp.is_positive() && self.position.distance_between(tower.position) < 12.0{
-				tower.hp -= self.attack_damage as i32;
-				self.attacking = true;
+				self.can_move = false;
+				self.attack_cooldown -= 1.;
+				if self.attack_cooldown < 0.0{
+					tower.hp -= self.attack_damage as i32;
+					self.attack_cooldown += self.attack_rate;
+				}
 				break;
 			};
 		};
@@ -204,8 +257,12 @@ impl AttackBuilding for Creep{
 	
 	fn attack_throne(&mut self, throne: &mut Throne){
 		if throne.hp.is_positive() && self.position.distance_between(throne.position) < 12.0{
-			throne.hp -= self.attack_damage as i32;
-			self.attacking = true;
+			self.can_move = false;
+			self.attack_cooldown -= 1.;
+			if self.attack_cooldown < 0.0{
+				throne.hp -= self.attack_damage as i32;
+				self.attack_cooldown += self.attack_rate;
+			}
 		};
 	}
 }
@@ -287,7 +344,7 @@ pub trait MoveCreeps{
 impl MoveCreeps for Team{
 	fn move_creeps_radiant(&mut self){
 		for lane_creep in &mut self.lane_creeps{
-			if !lane_creep.attacking{
+			if lane_creep.can_move{
 				match lane_creep.lane{
 					Lane::Top => lane_creep.move_top_creep_radiant(),
 					Lane::Mid => lane_creep.move_mid_creep_radiant(),
@@ -299,7 +356,7 @@ impl MoveCreeps for Team{
 	
 	fn move_creeps_dire(&mut self){
 		for lane_creep in &mut self.lane_creeps{
-			if !lane_creep.attacking{
+			if lane_creep.can_move{
 				match lane_creep.lane{
 					Lane::Top => lane_creep.move_top_creep_dire(),
 					Lane::Mid => lane_creep.move_mid_creep_dire(),
@@ -316,7 +373,6 @@ pub trait KillOff{
 
 impl KillOff for Game{
 	fn kill_off_creeps(&mut self){
-		self.radiant.lane_creeps.retain(|&i| i.hp > 0);
-		self.dire.lane_creeps.retain(|&i| i.hp > 0);
+		for i in 0..2{self.teams[i].lane_creeps.retain(|&i| i.hp > 0)};
 	}
 }
