@@ -187,12 +187,26 @@ fn main() {
         .for_folder("assets").unwrap();
     let rust_logo = assets.join("rsz_dota_minimap.jpg");
     let rubick_pic = gTexture::from_path(
-					 assets.join("Rubick_icon.png"),
-	).unwrap();
+					 assets.join("Rubick_icon.png")).unwrap();
 	
-	let rubick_pic_2 = gTexture::from_path(
-					 assets.join("Tinker_icon.png"),
-	).unwrap();
+	let ta_pic = gTexture::from_path(
+					 assets.join("Templar_Assassin_icon.png")).unwrap();
+	let enigma_pic = gTexture::from_path(
+					 assets.join("Enigma_icon.png")).unwrap();
+	let batrider_pic = gTexture::from_path(
+					 assets.join("Batrider_icon.png")).unwrap();
+	let alchemist_pic = gTexture::from_path(
+					 assets.join("Alchemist_icon.png")).unwrap();
+	let io_pic = gTexture::from_path(
+					 assets.join("Io_icon.png")).unwrap();
+	let cm_pic = gTexture::from_path(
+					 assets.join("Crystal_Maiden_icon.png")).unwrap();
+	let np_pic = gTexture::from_path(
+					 assets.join("Natures_Prophet_icon.png")).unwrap();
+	let puck_pic = gTexture::from_path(
+					 assets.join("Puck_icon.png")).unwrap();
+	let ck_pic = gTexture::from_path(
+					 assets.join("Chaos_Knight_icon.png")).unwrap();
 	
     let rust_logo = gTexture::from_path(
             //&mut window.factory,  these are here for piston window but not gl window
@@ -298,15 +312,24 @@ fn main() {
 					velocity: Velocity{x: 0, y: 0}
 		};
 		
-	let not_rubick = Hero{position: dire_fount.position, pic: rubick_pic_2, .. rubick};
+	let enigma = Hero{pic: enigma_pic, .. rubick};
+	let alchemist = Hero{pic: alchemist_pic, .. rubick};
+	let batrider = Hero{pic: batrider_pic, .. rubick};
+	let ta = Hero{pic: ta_pic, .. rubick};
+	let puck = Hero{position: dire_fount.position, pic: puck_pic, .. rubick};
+	let io = Hero{position: dire_fount.position, pic: io_pic, .. rubick};
+	let cm = Hero{position: dire_fount.position, pic: cm_pic, .. rubick};
+	let ck = Hero{position: dire_fount.position, pic: ck_pic, name: "ck", .. rubick};
+	let np = Hero{position: dire_fount.position, pic: np_pic, .. rubick};
+	
 	
 	let radiant = Team{side: Side::Radiant, towers: [t1_rad_tower, t2_rad_tower, t3_rad_tower, t3_rad_top_tower,
 		t2_rad_top_tower, t1_rad_top_tower, t3_rad_bot_tower, t2_rad_bot_tower, t1_rad_bot_tower],
-		fountain: radiant_fount, throne: radiant_throne, lane_creeps: vec!(), heroes: [rubick]};
+		fountain: radiant_fount, throne: radiant_throne, lane_creeps: vec!(), heroes: [rubick, enigma, alchemist, ta, batrider]};
 		
 	let dire = Team{side: Side::Dire, towers: [tower, t2_dire_tower, t3_dire_tower, t3_dire_top_tower, t2_dire_top_tower,
 		 t1_dire_top_tower, t3_dire_bot_tower, t2_dire_bot_tower, t1_dire_bot_tower],
-		fountain: dire_fount, throne: dire_throne, lane_creeps: vec!(), heroes: [not_rubick]};
+		fountain: dire_fount, throne: dire_throne, lane_creeps: vec!(), heroes: [io, cm, ck, np, puck]};
 		
 	let magic_number = (MAX_COORD as f32 *(7.0/8.0) )as u32;
 	let top_lane_vertex = Position{x: MAX_COORD - magic_number, y: MAX_COORD - magic_number};
@@ -409,6 +432,12 @@ fn main() {
 			x if x < 2000 => game.teams[0].heroes[0].move_towards_creeps(Lane::Mid, &game.teams[1].lane_creeps, &game.top_lane_vertex, &game.bot_lane_vertex),
 			_ => game.teams[0].heroes[0].move_towards_creeps(Lane::Top, &game.teams[1].lane_creeps, &game.top_lane_vertex, &game.bot_lane_vertex),
 		}
-		game.teams[1].heroes[0].move_towards_creeps(Lane::Mid, &game.teams[0].lane_creeps, &game.top_lane_vertex, &game.bot_lane_vertex);;
+		game.teams[1].heroes[0].move_towards_creeps(Lane::Mid, &game.teams[0].lane_creeps, &game.top_lane_vertex, &game.bot_lane_vertex);
+		game.teams[1].heroes[1].move_towards_creeps(Lane::Top, &game.teams[0].lane_creeps, &game.top_lane_vertex, &game.bot_lane_vertex);
+		game.teams[1].heroes[2].move_towards_creeps(Lane::Bot, &game.teams[0].lane_creeps, &game.top_lane_vertex, &game.bot_lane_vertex);
+		game.teams[0].heroes[1].move_towards_creeps(Lane::Mid, &game.teams[1].lane_creeps, &game.top_lane_vertex, &game.bot_lane_vertex);
+		game.teams[0].heroes[2].move_towards_creeps(Lane::Top, &game.teams[1].lane_creeps, &game.top_lane_vertex, &game.bot_lane_vertex);
+		game.teams[0].heroes[3].move_towards_creeps(Lane::Bot, &game.teams[1].lane_creeps, &game.top_lane_vertex, &game.bot_lane_vertex);
+		game.teams[0].heroes[4].move_towards_creeps(Lane::Mid, &game.teams[0].lane_creeps, &game.top_lane_vertex, &game.bot_lane_vertex);
 	}
 }

@@ -32,7 +32,7 @@ pub struct Team{
 	pub fountain: Fountain,
 	pub throne: Throne,
 	pub lane_creeps: Vec<Creep>,
-	pub heroes: [Hero; 1]
+	pub heroes: [Hero; 5]
 }
 
 #[derive(Copy, Clone)]
@@ -332,7 +332,7 @@ pub trait MoveHero{
 	
 	fn move_directly_to_creep(&mut self, closest_creep: &Creep);
 	
-	fn move_directly_to(&mut self, destination: Position, creep: &Creep, correct_x: bool);
+	fn move_to_creep_along_lane(&mut self, creep: &Creep, correct_x: bool);
 }
 
 impl MoveHero for Hero{
@@ -370,16 +370,22 @@ impl MoveHero for Hero{
 		};
 	}
 	
-	fn move_directly_to(&mut self, destination: Position, creep: &Creep, correct_x: bool){
-		
+	fn move_to_creep_along_lane(&mut self, creep: &Creep, correct_x: bool){
+		let (xdiff, ydiff) = (self.position.x_distance(creep.position), self.position.y_distance(creep.position));
 		if correct_x{
-			match self.position.x_distance(creep.position){
+			match xdiff{
 				x if x <= 10 => {
 					self.move_directly_to_creep(creep)
 				},
-				_ => {
+				_ => match ydiff{
+					y if y<= 10 => {
+						self.position.x = (self.position.x as i32 - creep.velocity.x) as u32;
+						//self.position.y = (self.position.y as i32 + creep.velocity.y) as u32;
+					},
+					_ => {
 					self.position.x = (self.position.x as i32 + creep.velocity.y) as u32;
 					self.position.y = (self.position.y as i32 + creep.velocity.x) as u32;
+				}
 				},
 			}
 		}
@@ -395,22 +401,6 @@ impl MoveHero for Hero{
 				},
 			}
 		}
-		
-		
-		//let (x_diff, y_diff) = (self.position.x as i32 - destination.x as i32,
-								//self.position.y as i32 - destination.y as i32);
-		
-		//self.position.x = match x_diff{
-			//x if x > 0 => (self.position.x - 1) as u32,
-			//x if x < 0 => self.position.x + 1,
-			//_ => self.position.x // must be 0, in line with
-		//};
-		
-		//self.position.y = match y_diff{
-			//y if y > 0 => (self.position.y - 1) as u32,
-			//y if y < 0 => self.position.y + 1,
-			//_ => self.position.y // must be 0, in line with
-		//};
 	}
 	
 	// assume first creep in vector is in first wave so closest. yolo
@@ -423,20 +413,17 @@ impl MoveHero for Hero{
 				Lane::Top => Some(top_corner),
 				_ => None
 			};
-			let distance_away = self.position.distance_between(closest_creep.position);
 			if !correct_corner.is_none() && self.position.distance_between(closest_creep.position) > 100.0 {
 				let corner = *correct_corner.unwrap();
 				let (x_diff_corner, y_diff_corner) = (self.position.x_difference(corner),
 				 self.position.y_difference(corner));
 				match (x_diff_corner, y_diff_corner){
-					(x, y) if x.abs() <= 10 => self.move_directly_to(corner, &closest_creep, true),
-					(x, y) if y.abs() <= 10 => self.move_directly_to(corner, &closest_creep, false),
+					(x, _) if x.abs() <= 10 => self.move_to_creep_along_lane(&closest_creep, true),
+					(_, y) if y.abs() <= 10 => self.move_to_creep_along_lane(&closest_creep, false),
 					(x, y) if x.abs() > y.abs() && y > 0 => self.position.add_y(-1),
 					(x, y) if x.abs() > y.abs() && y < 0 => self.position.add_y(1),
-					//(x, y) if x.abs() > y.abs() && -30 < x && x < 30 => self.move_directly_to_creep(lane, lane_creeps),
 					(x, y) if x.abs() < y.abs() && x > 0 => self.position.add_x(-1),
 					(x, y) if x.abs() < y.abs() && x < 0 => self.position.add_x(1),
-					//(x, y) if x.abs() < y.abs() && -30 < y && y < 30 => self.move_directly_to_creep(lane, lane_creeps),
 					_ => self.move_directly_to_creep(&closest_creep)
 				}
 			}
