@@ -5,14 +5,15 @@ extern crate glutin_window;
 extern crate opengl_graphics;
 extern crate find_folder;
 extern crate gfx_device_gl;
-extern crate rand;
 extern crate freetype;
+extern crate rand;
 
 use piston_window::*;
-//use glutin_window::GlutinWindow;
 use opengl_graphics::{GlGraphics, Texture as gTexture};
 use graphics::math::Matrix2d;
 pub mod the_game;
+pub mod position;
+use position::*;
 use the_game::*;
 
 const GREEN: [f32; 4] = [0.0, 1.0, 0.0, 1.0];
@@ -73,8 +74,10 @@ impl<'a> App<'a>{
 			image(background, c.transform, gl);
 		});
 		
+		
 		for i in 0..2{
 			let team = &game.teams[i];
+			//Draw Towers
 			for tower in team.towers.iter(){
 				if tower.hp.is_positive(){
 					self.gl.draw(args.viewport(), |c, gl| {
@@ -91,24 +94,20 @@ impl<'a> App<'a>{
 					});
 				}
 			};
-		}
 		
-		self.gl.draw(args.viewport(), |c, gl| {
-			for i in 0..2{
-				let ref team = game.teams[i];
+			//Draw Thrones
+			self.gl.draw(args.viewport(), |c, gl| {
 				let transform = c.transform.trans(team.throne.position.x as f64, team.throne.position.y as f64);
 				let square = rectangle::centered_square(0.0, 0.0, 15.0);
 				match team.side{
 					Side::Radiant  => ellipse(DARK_GREEN, square, transform, gl),
 					Side::Dire => ellipse(DARK_RED, square, transform, gl)
 				}
-			}
-		});
+			});
 		
-		self.gl.draw(args.viewport(), |c, gl| {
-			for i in 0..2{
-				let ref team = game.teams[i];
-				let ref fountain = team.fountain;
+			//Draw Fountains
+			self.gl.draw(args.viewport(), |c, gl| {
+				let fountain = &team.fountain;
 				let transform = c.transform.trans(fountain.position.x as f64, fountain.position.y as f64);
 				let square = rectangle::centered_square(0.0, 0.0, 5.0);
 				match team.side{	
@@ -117,12 +116,9 @@ impl<'a> App<'a>{
 				}
 				if fountain.attacked_this_turn{ellipse(YELLOW, rectangle::centered_square(0.0, 0.0, 2.0),
 							 c.transform.trans(fountain.position.x as f64, fountain.position.y as f64), gl);};
-			}
-		});
+			});
 		
-		
-		for i in 0..2{
-			let team = &game.teams[i];
+		// Draw Lane Creeps
 			for creep in &team.lane_creeps{
 				self.gl.draw(args.viewport(), |c, gl| {
 					let transform = c.transform.trans(creep.position.x as f64, creep.position.y as f64);
@@ -135,9 +131,10 @@ impl<'a> App<'a>{
 				});
 			}
 			
+			// Draw Heroes
 			for hero in &team.heroes{
 				self.gl.draw(args.viewport(), |c, gl| {
-					let transform = c.transform.trans(hero.position.x as f64, hero.position.y as f64).trans(-25.0, -25.0);		   
+					let transform = c.transform.trans(hero.position.x as f64, hero.position.y as f64).trans(-16.0, -16.0);		   
 					image(&hero.pic, transform, gl);
 				});
 			}
@@ -190,11 +187,11 @@ fn main() {
         .for_folder("assets").unwrap();
     let rust_logo = assets.join("rsz_dota_minimap.jpg");
     let rubick_pic = gTexture::from_path(
-					 assets.join("rubick.jpg"),
+					 assets.join("Rubick_icon.png"),
 	).unwrap();
 	
 	let rubick_pic_2 = gTexture::from_path(
-					 assets.join("rubick2.jpg"),
+					 assets.join("Tinker_icon.png"),
 	).unwrap();
 	
     let rust_logo = gTexture::from_path(
@@ -284,6 +281,10 @@ fn main() {
 					base_attack_damage: 27.0, // 17-27
 					move_speed: 290,
 					
+					can_move: true,
+					attack_damage: 27.0,
+					max_hp: 200.0,
+					max_mana: 50.0,
 					gold: 650.0,
 					hp: 200.0,
 					hp_regen: 0.25,
@@ -294,6 +295,7 @@ fn main() {
 					position: radiant_fount.position,
 					level: 1,
 					armour: -1.0,
+					velocity: Velocity{x: 0, y: 0}
 		};
 		
 	let not_rubick = Hero{position: dire_fount.position, pic: rubick_pic_2, .. rubick};
@@ -305,13 +307,17 @@ fn main() {
 	let dire = Team{side: Side::Dire, towers: [tower, t2_dire_tower, t3_dire_tower, t3_dire_top_tower, t2_dire_top_tower,
 		 t1_dire_top_tower, t3_dire_bot_tower, t2_dire_bot_tower, t1_dire_bot_tower],
 		fountain: dire_fount, throne: dire_throne, lane_creeps: vec!(), heroes: [not_rubick]};
+		
+	let magic_number = (MAX_COORD as f32 *(7.0/8.0) )as u32;
+	let top_lane_vertex = Position{x: MAX_COORD - magic_number, y: MAX_COORD - magic_number};
+	let bot_lane_vertex = Position{x: magic_number, y: magic_number};
 		 
 	let mut game = Game{
 		game_tick: 0,
 		game_time: 0.0,
-		teams: [radiant, dire]
-		//radiant: radiant,
-		//dire: dire
+		teams: [radiant, dire],
+		top_lane_vertex: top_lane_vertex,
+		bot_lane_vertex: bot_lane_vertex
 	};
 	
 	'outer: loop {
@@ -329,14 +335,19 @@ fn main() {
 					attack_rate: 1.6,
 					melee_attack: true,
 					can_move: true,
+					velocity: Velocity{x: 0, y: -1},
 					position: position.small_random_pos_offset(),
 				};
-				let new_radiant_bot_creep = Creep{lane: Lane::Bot, position: position.small_random_pos_offset(), .. new_radiant_top_creep};
-				let new_radiant_mid_creep = Creep{lane: Lane::Mid, position: position.small_random_pos_offset(), .. new_radiant_top_creep};
+				let new_radiant_bot_creep = Creep{lane: Lane::Bot, position: position.small_random_pos_offset(),
+					 velocity: Velocity{x: 1, y: 0}, .. new_radiant_top_creep};
+				let new_radiant_mid_creep = Creep{lane: Lane::Mid, position: position.small_random_pos_offset(),
+					velocity: Velocity{x: 1, y: -1}, .. new_radiant_top_creep};
 				let new_dire_top_creep = Creep{position: position.swap_x_y().small_random_pos_offset(),
-					 attack_damage: 3, .. new_radiant_top_creep};
-				let new_dire_bot_creep = Creep{lane: Lane::Bot, position: position.swap_x_y().small_random_pos_offset(), .. new_dire_top_creep};
-				let new_dire_mid_creep = Creep{lane: Lane::Mid, position: position.swap_x_y().small_random_pos_offset(), .. new_dire_top_creep};
+					 attack_damage: 3, velocity: Velocity{x: -1, y: 0}, .. new_radiant_top_creep};
+				let new_dire_bot_creep = Creep{lane: Lane::Bot, position: position.swap_x_y().small_random_pos_offset(),
+					velocity: Velocity{x: 0, y: 1}, .. new_dire_top_creep};
+				let new_dire_mid_creep = Creep{lane: Lane::Mid, position: position.swap_x_y().small_random_pos_offset(),
+					velocity: Velocity{x: -1, y: 1}, .. new_dire_top_creep};
 				game.teams[0].lane_creeps.push(new_radiant_top_creep);
 				game.teams[0].lane_creeps.push(new_radiant_bot_creep);
 				game.teams[0].lane_creeps.push(new_radiant_mid_creep);
@@ -393,5 +404,11 @@ fn main() {
 			}
 		};
 		game.game_tick += 1;
+		match game.game_tick{
+			x if x < 1300 => game.teams[0].heroes[0].move_towards_creeps(Lane::Bot, &game.teams[1].lane_creeps, &game.top_lane_vertex, &game.bot_lane_vertex),
+			x if x < 2000 => game.teams[0].heroes[0].move_towards_creeps(Lane::Mid, &game.teams[1].lane_creeps, &game.top_lane_vertex, &game.bot_lane_vertex),
+			_ => game.teams[0].heroes[0].move_towards_creeps(Lane::Top, &game.teams[1].lane_creeps, &game.top_lane_vertex, &game.bot_lane_vertex),
+		}
+		game.teams[1].heroes[0].move_towards_creeps(Lane::Mid, &game.teams[0].lane_creeps, &game.top_lane_vertex, &game.bot_lane_vertex);;
 	}
 }

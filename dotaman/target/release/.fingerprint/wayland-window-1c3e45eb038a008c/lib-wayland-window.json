@@ -1,0 +1,1 @@
+{"rustc":11871947434854807676,"target":17729796482831227007,"profile":11411396542915816673,"local":{"variant":"Precalculated","fields":["0.2.3"]},"features":"None","deps":[["byteorder v0.5.3",906098111542614984],["tempfile v2.1.4",18102868770275880656],["wayland-client v0.5.12",12161760793428360759]],"rustflags":[]}

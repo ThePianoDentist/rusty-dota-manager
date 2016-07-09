@@ -1,0 +1,1 @@
+{"rustc":11871947434854807676,"target":3093000141401251203,"profile":11411396542915816673,"local":{"variant":"Precalculated","fields":["0.5.11"]},"features":"Some([\"client\", \"cursor\", \"dlib\", \"dlopen\", \"egl\", \"lazy_static\"])","deps":[["dlib v0.3.0",12396057075019881113],["lazy_static v0.1.16",10766478693887346766]],"rustflags":[]}

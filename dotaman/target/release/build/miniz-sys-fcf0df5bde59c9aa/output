@@ -1,0 +1,35 @@
+TARGET = Some("x86_64-unknown-linux-gnu")
+OPT_LEVEL = Some("3")
+PROFILE = Some("release")
+TARGET = Some("x86_64-unknown-linux-gnu")
+debug=false opt-level=3
+HOST = Some("x86_64-unknown-linux-gnu")
+TARGET = Some("x86_64-unknown-linux-gnu")
+TARGET = Some("x86_64-unknown-linux-gnu")
+HOST = Some("x86_64-unknown-linux-gnu")
+CC_x86_64-unknown-linux-gnu = None
+CC_x86_64_unknown_linux_gnu = None
+HOST_CC = None
+CC = None
+HOST = Some("x86_64-unknown-linux-gnu")
+TARGET = Some("x86_64-unknown-linux-gnu")
+HOST = Some("x86_64-unknown-linux-gnu")
+CFLAGS_x86_64-unknown-linux-gnu = None
+CFLAGS_x86_64_unknown_linux_gnu = None
+HOST_CFLAGS = None
+CFLAGS = None
+running: "cc" "-O3" "-ffunction-sections" "-fdata-sections" "-m64" "-fPIC" "-o" "/home/jdog/projects/dotaman/target/release/build/miniz-sys-fcf0df5bde59c9aa/out/miniz.o" "-c" "miniz.c"
+ExitStatus(ExitStatus(0))
+TARGET = Some("x86_64-unknown-linux-gnu")
+TARGET = Some("x86_64-unknown-linux-gnu")
+HOST = Some("x86_64-unknown-linux-gnu")
+AR_x86_64-unknown-linux-gnu = None
+AR_x86_64_unknown_linux_gnu = None
+HOST_AR = None
+AR = None
+TARGET = Some("x86_64-unknown-linux-gnu")
+running: "ar" "crus" "/home/jdog/projects/dotaman/target/release/build/miniz-sys-fcf0df5bde59c9aa/out/libminiz.a" "/home/jdog/projects/dotaman/target/release/build/miniz-sys-fcf0df5bde59c9aa/out/miniz.o"
+ExitStatus(ExitStatus(0))
+cargo:rustc-link-lib=static=miniz
+cargo:rustc-link-search=native=/home/jdog/projects/dotaman/target/release/build/miniz-sys-fcf0df5bde59c9aa/out
+cargo:root=/home/jdog/projects/dotaman/target/release/build/miniz-sys-fcf0df5bde59c9aa/out
