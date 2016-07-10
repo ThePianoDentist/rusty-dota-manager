@@ -1,6 +1,5 @@
 extern crate rand;
 extern crate opengl_graphics;
-use rand::Rng;
 use position::*;
 use anhero::*;
 
@@ -136,40 +135,10 @@ impl_AttackCreeps!(Tower);
 impl_AttackCreeps!(Fountain);
 impl_AttackCreeps!(Creep);
 
-/*impl AttackCreeps for Fountain{
-	fn attack_enemy_creeps(&mut self, enemy_creeps: &mut Vec<Creep>){
-		for creep in &mut enemy_creeps.iter_mut(){
-			if self.position.distance_between(creep.position) < self.range{
-				self.can_action = false;
-				self.attack_cooldown -= 1.;
-				if self.attack_cooldown < 0.0{
-					creep.hp -= self.attack_damage as i32;
-					self.attack_cooldown += self.attack_rate;
-				}
-				break;
-			}
-		}
-	}
-}
-
-impl AttackCreeps for Creep{
-	fn attack_enemy_creeps(&mut self, enemy_creeps: &mut Vec<Creep>){
-		for creep in &mut enemy_creeps.iter_mut(){
-			if self.position.distance_between(creep.position) < self.range{
-				self.attack_cooldown -= 1.;
-				self.can_action = false;
-				if self.attack_cooldown < 0.0{
-					creep.hp -= self.attack_damage as i32;
-					self.attack_cooldown += self.attack_rate; //bug with attacking too fast?
-				}
-				break;
-			}
-		}
-	}
-}
-*/
 pub trait AttackClosestHero{
 	fn attack_closest_hero(&mut self, &mut [Hero]);
+
+	fn attack_hero(&mut self, &mut Hero);
 }
 
 macro_rules! impl_AttackClosestHero{
@@ -185,6 +154,17 @@ macro_rules! impl_AttackClosestHero{
 							self.attack_cooldown += self.attack_rate; //bug with attacking too fast, it sorts of cycles all the way through once without realising...do two attacks in one tick??
 						}
 						break;
+					}
+				}
+			}
+
+			fn attack_hero(&mut self, hero: &mut Hero){
+				if self.position.distance_between(hero.position) < self.range && self.can_action{
+					self.can_action = false;
+					self.attack_cooldown -= 1.;
+					if self.attack_cooldown < 0.0{
+						hero.hp -= self.attack_damage as f32;
+						self.attack_cooldown += self.attack_rate; //bug with attacking too fast, it sorts of cycles all the way through once without realising...do two attacks in one tick??
 					}
 				}
 			}

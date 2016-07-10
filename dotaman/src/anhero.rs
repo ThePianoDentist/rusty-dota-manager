@@ -40,6 +40,7 @@ pub struct Hero{
 	pub respawn_timer: i32,
 	pub range: f32,
     pub decisions: Vec<Decision>,
+	pub current_decision: Decision,
 }
 
 pub struct Skill{
@@ -207,26 +208,73 @@ impl MoveHero for Hero{
 }
 
 pub trait Farm{
-    fn farm_top_lane(&mut self, &mut Vec<Creep>, &mut Vec<Creep>, &mut Vec<Tower>);
+    fn farm_lane(&mut self, Lane, &mut Vec<Creep>, &mut Vec<Creep>, &mut Vec<Tower>);
 }
 impl Farm for Hero{
 	// can get exceptions if all a lane of lane creeps dead. fix pls
-    fn farm_top_lane(&mut self, our_creeps: &mut Vec<Creep>, their_creeps: &mut Vec<Creep>, their_towers: &mut Vec<Tower>){
+    fn farm_lane(&mut self, lane: Lane, our_creeps: &mut Vec<Creep>, their_creeps: &mut Vec<Creep>, their_towers: &mut Vec<Tower>){
 		let ref closest_enemy_creeps = their_creeps.clone().into_iter().
-			filter(|&x| x.lane == Lane::Top).collect::<Vec<Creep>>();
+			filter(|&x| x.lane == lane).collect::<Vec<Creep>>();
 		let ref closest_friendly_creeps = our_creeps.clone().into_iter().
-			filter(|&x| x.lane == Lane::Top).collect::<Vec<Creep>>();
-		let closest_towers = their_towers.clone().into_iter().filter(|&x| x.lane == Lane::Top).collect::<Vec<Tower>>();
+			filter(|&x| x.lane == lane).collect::<Vec<Creep>>();
+		let closest_towers = their_towers.clone().into_iter().filter(|&x| x.lane == lane).collect::<Vec<Tower>>();
 		let (dist_enemy, dist_friendly, dist_tower) = (self.position.distance_between(closest_enemy_creeps[0].position),
 			self.position.distance_between(closest_friendly_creeps[0].position),
 			self.position.distance_between(closest_towers[0].position));
 		match (dist_friendly, dist_enemy, dist_tower){
 			(df, de, _) if df <= self.range && de <= self.range => self.attack_enemy_creeps(their_creeps),
-			(df, _, _) if df > self.range => self.move_towards_creeps(Lane::Top, &our_creeps),
-			(_, de, dt) if de > self.range && dt < de => self.move_to_attack_tower(their_towers, Lane::Top),
-			_ => self.move_towards_creeps(Lane::Top, &our_creeps), //shouldnt be possible
+			(df, _, _) if df > self.range => self.move_towards_creeps(lane, &our_creeps),
+			(_, de, dt) if de > self.range && dt < de => self.move_to_attack_tower(their_towers, lane),
+			_ => self.move_towards_creeps(lane, &our_creeps), //shouldnt be possible
 		}
     }
+}
+
+pub trait DefendTower{
+	fn move_to_defend_tower(&mut self, Lane, &Vec<Tower>);
+}
+
+impl DefendTower for Hero{
+	fn move_to_defend_tower(&mut self, lane: Lane, our_towers: &Vec<Tower>){
+		let closest_towers = our_towers.clone().into_iter().filter(|&x| x.lane == lane).collect::<Vec<Tower>>();
+		if closest_towers.len() > 0{
+			self.move_directly_to(&closest_towers[0].position);
+		}
+		else{
+			println!("no tower bro.should proablyb handle this");
+		}
+	}
+}
+
+pub trait Gank{
+	fn gank_lane(&mut self, Lane, &mut Vec<Creep>, &mut [Hero; 5]);
+}
+
+impl Gank for Hero{
+	fn gank_lane(&mut self, lane: Lane, their_creeps: &mut Vec<Creep>, enemy_heroes: &mut [Hero; 5]){
+		let ref closest_enemy_creep = their_creeps.clone().into_iter().
+			filter(|&x| x.lane == lane).collect::<Vec<Creep>>()[0];
+		let creep_diff = self.position.distance_between(closest_enemy_creep.position); // check creeps exist
+		let mut hero_diff = 9001.;
+		let mut closest_hero = None;
+		for hero in enemy_heroes.iter_mut(){
+			let distance = self.position.distance_between(hero.position);
+			if distance < hero_diff{
+				closest_hero = Some(hero);
+				hero_diff = distance;
+			}
+		}
+		match closest_hero{
+			Some(hero) =>{
+				match (creep_diff, hero_diff){
+					(cd, _) if cd > 50. => self.move_directly_to(&closest_enemy_creep.position),
+					(_, hd) if hd > self.range => self.move_directly_to(&hero.position),
+					_ => self.attack_hero(hero)
+				};
+			}
+			None => {}
+		}
+	}
 }
 
 /*pub trait GetDecision{

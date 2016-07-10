@@ -20,6 +20,7 @@ pub mod anhero;
 use anhero::*;
 pub mod hero_ai;
 use hero_ai::*;
+use hero_ai::Action::*;
 
 const GREEN: [f32; 4] = [0.0, 1.0, 0.0, 1.0];
 const RED:   [f32; 4] = [1.0, 0.0, 0.0, 1.0];
@@ -164,10 +165,6 @@ impl<'a> App<'a>{
 	}
 }
 
-fn wtf(i: usize) -> usize{
-	((i as i32 - 1).abs()) as usize
-}
-
 fn main() {
     println!("Hello, world!");
 
@@ -288,6 +285,18 @@ fn main() {
 
 	let dire_throne = Throne{position: radiant_throne.position.swap_x_y(), .. radiant_throne};
 
+    let rubick_decision = Decision{action:DefendBotTower, probability: 1.};
+    let enigma_decision = Decision{action:MoveToFountain, probability: 1.};
+    let ta_decision = Decision{action:FarmMidLane, probability: 1.};
+    let batrider_decision = Decision{action:FarmTopLane, probability: 1.};
+    let alchemist_decision = Decision{action:FarmBotLane, probability: 1.};
+
+    let io_decision = Decision{action:DefendBotTower, probability: 1.};
+    let cm_decision = Decision{action:DefendMidTower, probability: 1.};
+    let np_decision = Decision{action:FarmTopLane, probability: 1.};
+    let puck_decision = Decision{action:FarmMidLane, probability: 1.};
+    let ck_decision = Decision{action:FarmBotLane, probability: 1.};
+
 	let rubick = Hero{name: "rubick",
 					pic: rubick_pic,
 					base_int: 27,
@@ -316,26 +325,27 @@ fn main() {
 					velocity: Velocity{x: 0., y: 0.},
 					respawn_timer: 0,
 					range: 30.,
-                    decisions: vec!(),
+                    decisions: vec!(rubick_decision),
+                    current_decision: rubick_decision
 		};
 
-	let enigma = Hero{pic: enigma_pic, decisions: vec!(), .. rubick};
-	let alchemist = Hero{pic: alchemist_pic, decisions: vec!(), .. rubick};
-	let batrider = Hero{pic: batrider_pic, decisions: vec!(), .. rubick};
-	let ta = Hero{pic: ta_pic, decisions: vec!(), .. rubick};
-	let puck = Hero{position: dire_fount.position, pic: puck_pic, decisions: vec!(), .. rubick};
-	let io = Hero{position: dire_fount.position, pic: io_pic, decisions: vec!(), .. rubick};
-	let cm = Hero{position: dire_fount.position, pic: cm_pic, decisions: vec!(), .. rubick};
-	let ck = Hero{position: dire_fount.position, pic: ck_pic, name: "ck", decisions: vec!(), .. rubick};
-	let np = Hero{position: dire_fount.position, pic: np_pic, decisions: vec!(), .. rubick};
+	let enigma = Hero{pic: enigma_pic, decisions: vec!(enigma_decision), current_decision: enigma_decision, .. rubick};
+	let alchemist = Hero{pic: alchemist_pic, decisions: vec!(alchemist_decision), current_decision: alchemist_decision, .. rubick};
+	let batrider = Hero{pic: batrider_pic, decisions: vec!(batrider_decision), current_decision: batrider_decision, .. rubick};
+	let ta = Hero{pic: ta_pic, decisions: vec!(ta_decision), current_decision: ta_decision, .. rubick};
+	let puck = Hero{position: dire_fount.position, pic: puck_pic, decisions: vec!(puck_decision), current_decision: puck_decision, .. rubick};
+	let io = Hero{position: dire_fount.position, pic: io_pic, decisions: vec!(io_decision), current_decision: io_decision, .. rubick};
+	let cm = Hero{position: dire_fount.position, pic: cm_pic, decisions: vec!(cm_decision), current_decision: cm_decision, .. rubick};
+	let ck = Hero{position: dire_fount.position, pic: ck_pic, name: "ck", decisions: vec!(ck_decision), current_decision: ck_decision, .. rubick};
+	let np = Hero{position: dire_fount.position, pic: np_pic, decisions: vec!(np_decision), current_decision: np_decision, .. rubick};
 
 
-	let radiant = Team{side: Side::Radiant, towers: vec!(t1_rad_tower, t2_rad_tower, t3_rad_tower, t3_rad_top_tower,
-		t2_rad_top_tower, t1_rad_top_tower, t3_rad_bot_tower, t2_rad_bot_tower, t1_rad_bot_tower),
+	let radiant = Team{side: Side::Radiant, towers: vec!(t1_rad_tower, t2_rad_tower, t3_rad_tower, t1_rad_top_tower,
+		t2_rad_top_tower, t3_rad_top_tower, t1_rad_bot_tower, t2_rad_bot_tower, t3_rad_bot_tower),
 		fountain: radiant_fount, throne: radiant_throne, lane_creeps: vec!(), heroes: [rubick, enigma, alchemist, ta, batrider]};
 
-	let dire = Team{side: Side::Dire, towers: vec!(tower, t2_dire_tower, t3_dire_tower, t3_dire_top_tower, t2_dire_top_tower,
-		 t1_dire_top_tower, t3_dire_bot_tower, t2_dire_bot_tower, t1_dire_bot_tower),
+	let dire = Team{side: Side::Dire, towers: vec!(tower, t2_dire_tower, t3_dire_tower, t1_dire_top_tower, t2_dire_top_tower,
+		 t3_dire_top_tower, t1_dire_bot_tower, t2_dire_bot_tower, t3_dire_bot_tower),
 		fountain: dire_fount, throne: dire_throne, lane_creeps: vec!(), heroes: [io, cm, ck, np, puck]};
 
 	let mut game = Game{
@@ -410,7 +420,7 @@ fn main() {
 				creep.attack_throne(&mut them.throne);
 			}
 
-            if game.game_tick == 0{
+            /*if game.game_tick == 0{
                 let my_decision = Decision{action: Action::FARM_TOP_LANE, probability: 1.};
                 us.heroes[3].decisions.push(my_decision);
             }
@@ -420,9 +430,9 @@ fn main() {
     			x if x < 1300 => us.heroes[0].move_towards_creeps(Lane::Bot, &them.lane_creeps),
     			x if x < 2000 => us.heroes[0].move_towards_creeps(Lane::Mid, &them.lane_creeps),
     			_ => us.heroes[0].move_towards_creeps(Lane::Top, &them.lane_creeps),
-    		}}
+    		}}*/
 
-            if i == 1{
+            /*if i == 1{
     		us.heroes[0].move_towards_creeps(Lane::Mid, &them.lane_creeps);
     		us.heroes[1].move_towards_creeps(Lane::Top, &them.lane_creeps);
     		us.heroes[2].move_towards_creeps(Lane::Bot, &them.lane_creeps);
@@ -431,14 +441,19 @@ fn main() {
     		us.heroes[2].move_towards_creeps(Lane::Top, &them.lane_creeps);
     		//us.heroes[3].move_towards_creeps(Lane::Bot, &them.lane_creeps, &game.TOP_LANE_VERTEX, &game.BOT_LANE_VERTEX);
     		us.heroes[4].move_towards_creeps(Lane::Mid, &us.lane_creeps);
+        }*/
+            for hero in us.heroes.iter_mut(){
+                hero.process_decision(&mut us.lane_creeps, &mut them.lane_creeps, &mut them.towers, &us.towers,
+                    &mut them.heroes, us.fountain.position);
+                println!("GOOLD {}", hero.gold);
             }
-            //for hero in us.heroes.iter_mut(){
-            //    if hero.decisions.len() > 0{
-                us.heroes[3].make_decision(&mut us.lane_creeps, &mut them.lane_creeps, &mut them.towers);
-                println!("GOOLD {}", us.heroes[3].gold);
-            //}
-            //    println!("hehe");
-            //}
+
+            // Looping twice cos might be sensible to let all hero actions finish before updating decisions
+            for hero in us.heroes.iter_mut(){
+                if hero.should_change_decision(){
+                    hero.change_decision();
+                }
+            }
         };
 
 		game.kill_off_creeps();
@@ -462,6 +477,7 @@ fn main() {
 			}
 		};
 		game.game_tick += 1;
+        /*
 		match game.game_tick{
 			x if x < 1300 => game.teams[0].heroes[0].move_towards_creeps(Lane::Bot, &game.teams[1].lane_creeps),
 			x if x < 2000 => game.teams[0].heroes[0].move_towards_creeps(Lane::Mid, &game.teams[1].lane_creeps),
@@ -474,5 +490,6 @@ fn main() {
 		game.teams[0].heroes[2].move_towards_creeps(Lane::Top, &game.teams[1].lane_creeps);
 		//game.teams[0].heroes[3].move_towards_creeps(Lane::Bot, &game.teams[1].lane_creeps, &game.TOP_LANE_VERTEX, &game.BOT_LANE_VERTEX);
 		game.teams[0].heroes[4].move_towards_creeps(Lane::Mid, &game.teams[0].lane_creeps);
+        */
 	}
 }
