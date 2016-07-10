@@ -2,8 +2,9 @@ extern crate rand;
 extern crate opengl_graphics;
 use rand::Rng;
 use position::*;
+use anhero::*;
 
-pub const MAX_COORD: u32  = 600;
+pub const MAX_COORD: f32  = 600.0;
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum Lane{
@@ -20,15 +21,13 @@ pub enum Side{
 
 pub struct Game {
 	pub game_tick: u64,
-	pub game_time: f64,
+	pub game_time: f32,
 	pub teams: [Team; 2],
-	pub top_lane_vertex: Position,
-	pub bot_lane_vertex: Position,
 }
 
 pub struct Team{
 	pub side: Side,
-	pub towers: [Tower; 9],
+	pub towers: Vec<Tower>,
 	pub fountain: Fountain,
 	pub throne: Throne,
 	pub lane_creeps: Vec<Creep>,
@@ -45,10 +44,12 @@ pub struct Creep {
 	pub attack_rate: f32,
 	pub position: Position,
 	pub velocity: Velocity,
-	pub can_move: bool,
+	pub can_action: bool,
+	pub range: f32,
 }
 
 // Buildings
+#[derive(Copy, Clone)]
 pub struct Tower{
 	pub lane: Lane,
 	pub tier: u8,
@@ -57,8 +58,9 @@ pub struct Tower{
 	pub attack_damage: u32,
 	pub attack_cooldown: f32,
 	pub attack_rate: f32,
-	pub attacked_this_turn: bool,
+	pub can_action: bool,
 	pub position: Position,
+	pub range: f32,
 }
 
 pub struct Throne{
@@ -71,44 +73,12 @@ pub struct Fountain{
 	pub attack_damage: u32,
 	pub attack_cooldown: f32,
 	pub attack_rate: f32,
-	pub attacked_this_turn: bool,
-	pub position: Position
-}
-
-// Heroes
-pub struct Hero{
-	pub name: &'static str,
-	pub pic: opengl_graphics::Texture,
-	pub level: u32,
-	pub base_int: i32,
-	pub base_str: i32,
-	pub base_agi: i32,
-	pub int_gain: f32,
-	pub str_gain: f32,
-	pub agi_gain: f32,
-	pub base_attack_damage: f32,
-	pub move_speed: i32,
-	pub hp_regen: f32,
-	pub mana_regen: f32,
-	
-	pub can_move: bool,
-	pub max_mana: f32,
-	pub max_hp: f32,
-	pub attack_damage: f32,
-	pub gold: f32,
-	pub hp: f32,
-	pub mana: f32,
-	pub attack_cooldown: f32,
-	pub attack_rate: f32,
+	pub can_action: bool,
 	pub position: Position,
-	pub armour: f32,
-	pub velocity: Velocity,
+	pub range: f32,
+	pub hp: i32 // temp hack to keep consistent with tower code
 }
 
-pub struct Skill{
-	pub name: str,
-}
-	
 pub trait TimeTick {
 	fn new_game_tick(&mut self);
 }
@@ -126,9 +96,13 @@ pub trait ResetAllAttacking{
 impl ResetAllAttacking for Game{
 	fn reset_all_attack_cooldown(&mut self){
 		for i in 0..2{
-			for creep in &mut self.teams[i].lane_creeps{creep.can_move = true;};
-			for tower in &mut self.teams[i].towers{tower.attacked_this_turn = false;};
-			self.teams[i].fountain.attacked_this_turn = false;
+			for creep in &mut self.teams[i].lane_creeps{creep.can_action = true;};
+			for tower in &mut self.teams[i].towers{tower.can_action = true;};
+			for hero in &mut self.teams[i].heroes{
+				hero.respawn_timer -= 1;
+				if hero.respawn_timer <=0 {hero.can_action = true};
+				};
+			self.teams[i].fountain.can_action = true;
 		}
 	}
 }
@@ -137,32 +111,39 @@ pub trait AttackCreeps{
 	fn attack_enemy_creeps(&mut self, &mut Vec<Creep>);
 }
 
-impl AttackCreeps for Tower{
-	fn attack_enemy_creeps(&mut self, enemy_creeps: &mut Vec<Creep>){
-		if self.hp.is_positive(){
-			for creep in &mut enemy_creeps.iter_mut(){
-				if self.position.distance_between(creep.position) < 12.0{
-					self.attack_cooldown -= 1.;
-					if self.attack_cooldown < 0.0{
-						creep.hp -= self.attack_damage as i32;
-						self.attacked_this_turn = true;
-						self.attack_cooldown += self.attack_rate;
+
+macro_rules! impl_AttackCreeps {
+    ($T:ident) => {
+		impl AttackCreeps for $T{
+			fn attack_enemy_creeps(&mut self, enemy_creeps: &mut Vec<Creep>){
+				for creep in &mut enemy_creeps.iter_mut(){
+					if self.position.distance_between(creep.position) < self.range{
+						self.attack_cooldown -= 1.;
+						self.can_action = false;
+						if self.attack_cooldown < 0.0{
+							creep.hp -= self.attack_damage as i32;
+							self.attack_cooldown += self.attack_rate;
+						}
+						break;
 					}
-					break;
 				}
 			}
 		}
 	}
 }
 
-impl AttackCreeps for Fountain{
+impl_AttackCreeps!(Tower);
+impl_AttackCreeps!(Fountain);
+impl_AttackCreeps!(Creep);
+
+/*impl AttackCreeps for Fountain{
 	fn attack_enemy_creeps(&mut self, enemy_creeps: &mut Vec<Creep>){
 		for creep in &mut enemy_creeps.iter_mut(){
-			if self.position.distance_between(creep.position) < 12.0{
+			if self.position.distance_between(creep.position) < self.range{
+				self.can_action = false;
 				self.attack_cooldown -= 1.;
 				if self.attack_cooldown < 0.0{
 					creep.hp -= self.attack_damage as i32;
-					self.attacked_this_turn = true;
 					self.attack_cooldown += self.attack_rate;
 				}
 				break;
@@ -173,34 +154,60 @@ impl AttackCreeps for Fountain{
 
 impl AttackCreeps for Creep{
 	fn attack_enemy_creeps(&mut self, enemy_creeps: &mut Vec<Creep>){
-		if self.hp.is_positive(){
-			for creep in &mut enemy_creeps.iter_mut(){
-				if self.position.distance_between(creep.position) < 12.0{
-					self.attack_cooldown -= 1.;
-					self.can_move = false;
-					if self.attack_cooldown < 0.0{
-						creep.hp -= self.attack_damage as i32;
-						self.attack_cooldown += self.attack_rate; //bug with attacking too fast?
+		for creep in &mut enemy_creeps.iter_mut(){
+			if self.position.distance_between(creep.position) < self.range{
+				self.attack_cooldown -= 1.;
+				self.can_action = false;
+				if self.attack_cooldown < 0.0{
+					creep.hp -= self.attack_damage as i32;
+					self.attack_cooldown += self.attack_rate; //bug with attacking too fast?
+				}
+				break;
+			}
+		}
+	}
+}
+*/
+pub trait AttackClosestHero{
+	fn attack_closest_hero(&mut self, &mut [Hero]);
+}
+
+macro_rules! impl_AttackClosestHero{
+	($T: ident) => {
+	impl AttackClosestHero for $T{
+			fn attack_closest_hero(&mut self, enemy_heroes: &mut [Hero]){
+				for hero in &mut enemy_heroes.iter_mut(){
+					if self.position.distance_between(hero.position) < self.range && self.can_action{
+						self.can_action = false;
+						self.attack_cooldown -= 1.;
+						if self.attack_cooldown < 0.0{
+							hero.hp -= self.attack_damage as f32;
+							self.attack_cooldown += self.attack_rate; //bug with attacking too fast, it sorts of cycles all the way through once without realising...do two attacks in one tick??
+						}
+						break;
 					}
-					break;
 				}
 			}
 		}
 	}
 }
-	
+
+impl_AttackClosestHero!(Tower);
+impl_AttackClosestHero!(Creep);
+impl_AttackClosestHero!(Fountain);
+
 pub trait AttackBuilding{
-	fn attack_towers(&mut self, &mut [Tower]);
+	fn attack_towers(&mut self, &mut Vec<Tower>);
 	fn attack_throne(&mut self, &mut Throne);
 }
 
-macro_rules! impl_AttackBuilding { 
+macro_rules! impl_AttackBuilding {
     ($T:ident) => {
         impl AttackBuilding for $T {
-            fn attack_towers(&mut self, enemy_towers: &mut [Tower]){
+            fn attack_towers(&mut self, enemy_towers: &mut Vec<Tower>){
 				for tower in &mut enemy_towers.iter_mut(){
-					if tower.hp.is_positive() && self.position.distance_between(tower.position) < 12.0{
-						self.can_move = false;
+					if self.position.distance_between(tower.position) < self.range{
+						self.can_action = false;
 						self.attack_cooldown -= 1.;
 						if self.attack_cooldown < 0.0{
 							tower.hp -= self.attack_damage as i32;
@@ -210,10 +217,10 @@ macro_rules! impl_AttackBuilding {
 					};
 				};
 			}
-			
+
 			fn attack_throne(&mut self, throne: &mut Throne){
-				if throne.hp.is_positive() && self.position.distance_between(throne.position) < 12.0{
-					self.can_move = false;
+				if self.position.distance_between(throne.position) < self.range{
+					self.can_action = false;
 					self.attack_cooldown -= 1.;
 					if self.attack_cooldown < 0.0{
 						throne.hp -= self.attack_damage as i32;
@@ -226,7 +233,6 @@ macro_rules! impl_AttackBuilding {
 }
 
 impl_AttackBuilding!(Creep);
-impl_AttackBuilding!(Hero);
 
 pub trait Travel{
 	fn travel(&mut self);
@@ -237,8 +243,8 @@ macro_rules! impl_Travel{
 	{
 		impl Travel for $T{  // do handling to keep in bounds here
 			fn travel(&mut self){
-				self.position.y = (self.position.y as i32 + self.velocity.y) as u32;
-				self.position.x = (self.position.x as i32 + self.velocity.x) as u32;
+				self.position.y += self.velocity.y;
+				self.position.x += self.velocity.x;
 			}
 		}
 	}
@@ -259,8 +265,8 @@ pub trait MoveDownLane{
 impl MoveDownLane for Creep{
 	fn move_top_creep_radiant(&mut self){
 		self.travel();
-		if self.position.small_random_pos_offset().y < (MAX_COORD / 8){
-			self.velocity = Velocity{x: 1, y: 0};
+		if self.position.small_random_pos_offset().y < (MAX_COORD / 8.){
+			self.velocity = Velocity{x: 1., y: 0.};
 		}
 	}
 
@@ -270,8 +276,8 @@ impl MoveDownLane for Creep{
 
 	fn move_bot_creep_radiant(&mut self){
 		self.travel();
-		if self.position.small_random_pos_offset().x > (MAX_COORD as f32 *(7.0/8.0)) as u32{
-			self.velocity = Velocity{x: 0, y: -1};
+		if self.position.small_random_pos_offset().x > MAX_COORD *(7.0/8.0){
+			self.velocity = Velocity{x: 0., y: -1.};
 		}
 	}
 
@@ -281,15 +287,15 @@ impl MoveDownLane for Creep{
 
 	fn move_bot_creep_dire(&mut self){
 		self.travel();
-		if self.position.y > (MAX_COORD as f32 *(7.0/8.0)) as u32{
-			self.velocity = Velocity{x: -1, y: 0};
+		if self.position.y > MAX_COORD *(7.0/8.0){
+			self.velocity = Velocity{x: -1.0, y: 0.0};
 		}
 	}
 
 	fn move_top_creep_dire(&mut self){
 		self.travel();
-		if self.position.x < MAX_COORD / 8{
-			self.velocity = Velocity{x: 0, y: 1};
+		if self.position.x < MAX_COORD / 8.0{
+			self.velocity = Velocity{x: 0.0, y: 1.0};
 		}
 	}
 }
@@ -302,7 +308,7 @@ pub trait MoveCreeps{
 impl MoveCreeps for Team{
 	fn move_creeps_radiant(&mut self){
 		for lane_creep in &mut self.lane_creeps{
-			if lane_creep.can_move{
+			if lane_creep.can_action{
 				match lane_creep.lane{
 					Lane::Top => lane_creep.move_top_creep_radiant(),
 					Lane::Mid => lane_creep.move_mid_creep_radiant(),
@@ -311,10 +317,10 @@ impl MoveCreeps for Team{
 			}
 		}
 	}
-	
+
 	fn move_creeps_dire(&mut self){
 		for lane_creep in &mut self.lane_creeps{
-			if lane_creep.can_move{
+			if lane_creep.can_action{
 				match lane_creep.lane{
 					Lane::Top => lane_creep.move_top_creep_dire(),
 					Lane::Mid => lane_creep.move_mid_creep_dire(),
@@ -325,121 +331,33 @@ impl MoveCreeps for Team{
 	}
 }
 
-pub trait MoveHero{
-	fn random_move(&mut self);
-	
-	fn move_towards_creeps(&mut self, Lane, &Vec<Creep>, bot_corner: &Position, top_corner: &Position);
-	
-	fn move_directly_to_creep(&mut self, closest_creep: &Creep);
-	
-	fn move_to_creep_along_lane(&mut self, creep: &Creep, correct_x: bool);
-}
-
-impl MoveHero for Hero{
-	fn random_move(&mut self){
-		let rand_dir = || rand::thread_rng().gen_range(-1, 2) as i32;
-		let rand_x = rand_dir();
-		let rand_y = rand_dir();
-		self.position.y = match self.position.y{
-			600 => (self.position.y as i32 - 1) as u32,
-			0 => self.position.y + 1,
-			_ => (self.position.y as i32 + rand_y) as u32
-		};
-		self.position.x = match self.position.x{
-			600 => (self.position.x as i32 - 1) as u32,
-			0 => self.position.x + 1,
-			_ => (self.position.x as i32 + rand_x) as u32
-		};
-	}
-	
-	fn move_directly_to_creep(&mut self, closest_creep: &Creep){
-		//let closest_creep = lane_creeps.into_iter().filter(|&x| x.lane == lane).collect::<Vec<&Creep>>()[0];  //change to retain
-		let (x_diff, y_diff) = (self.position.x as i32 - closest_creep.position.x as i32,
-								self.position.y as i32 - closest_creep.position.y as i32);
-		
-		self.position.x = match x_diff{
-			x if x > 0 => (self.position.x - 1) as u32,
-			x if x < 0 => self.position.x + 1,
-			_ => self.position.x // must be 0, in line with
-		};
-		
-		self.position.y = match y_diff{
-			y if y > 0 => (self.position.y - 1) as u32,
-			y if y < 0 => self.position.y + 1,
-			_ => self.position.y // must be 0, in line with
-		};
-	}
-	
-	fn move_to_creep_along_lane(&mut self, creep: &Creep, correct_x: bool){
-		let (xdiff, ydiff) = (self.position.x_distance(creep.position), self.position.y_distance(creep.position));
-		if correct_x{
-			match xdiff{
-				x if x <= 10 => {
-					self.move_directly_to_creep(creep)
-				},
-				_ => match ydiff{
-					y if y<= 10 => {
-						self.position.x = (self.position.x as i32 - creep.velocity.x) as u32;
-						//self.position.y = (self.position.y as i32 + creep.velocity.y) as u32;
-					},
-					_ => {
-					self.position.x = (self.position.x as i32 + creep.velocity.y) as u32;
-					self.position.y = (self.position.y as i32 + creep.velocity.x) as u32;
-				}
-				},
-			}
-		}
-		
-		else{
-			match self.position.y_distance(creep.position){
-				y if y <= 10 => {
-					self.move_directly_to_creep(creep);
-				},
-				_ => {
-					self.position.x = (self.position.x as i32 + creep.velocity.y) as u32;
-					self.position.y = (self.position.y as i32 + creep.velocity.x) as u32;
-				},
-			}
-		}
-	}
-	
-	// assume first creep in vector is in first wave so closest. yolo
-	fn move_towards_creeps(&mut self, lane: Lane, lane_creeps: &Vec<Creep>, top_corner: &Position, bot_corner: &Position){
-		let closest_creeps = lane_creeps.into_iter().filter(|&x| x.lane == lane).collect::<Vec<&Creep>>();  //change to retain
-		if closest_creeps.len() > 0{
-			let closest_creep = closest_creeps[0];
-			let correct_corner = match lane{
-				Lane::Bot => Some(bot_corner),
-				Lane::Top => Some(top_corner),
-				_ => None
-			};
-			if !correct_corner.is_none() && self.position.distance_between(closest_creep.position) > 100.0 {
-				let corner = *correct_corner.unwrap();
-				let (x_diff_corner, y_diff_corner) = (self.position.x_difference(corner),
-				 self.position.y_difference(corner));
-				match (x_diff_corner, y_diff_corner){
-					(x, _) if x.abs() <= 10 => self.move_to_creep_along_lane(&closest_creep, true),
-					(_, y) if y.abs() <= 10 => self.move_to_creep_along_lane(&closest_creep, false),
-					(x, y) if x.abs() > y.abs() && y > 0 => self.position.add_y(-1),
-					(x, y) if x.abs() > y.abs() && y < 0 => self.position.add_y(1),
-					(x, y) if x.abs() < y.abs() && x > 0 => self.position.add_x(-1),
-					(x, y) if x.abs() < y.abs() && x < 0 => self.position.add_x(1),
-					_ => self.move_directly_to_creep(&closest_creep)
-				}
-			}
-			else{
-				self.move_directly_to_creep(&closest_creep);
-			}
-		}
-	}
-}
-
 pub trait KillOff{
 	fn kill_off_creeps(&mut self);
+	fn kill_off_heroes(&mut self);
 }
 
 impl KillOff for Game{
 	fn kill_off_creeps(&mut self){
 		for i in 0..2{self.teams[i].lane_creeps.retain(|&i| i.hp > 0)};
+	}
+
+	fn kill_off_heroes(&mut self){
+		for i in 0..2{
+			for hero in self.teams[i].heroes.iter_mut(){
+				if hero.hp <= 0.{
+					let radiant_fount_pos = Position{x: (MAX_COORD/16.7).round(), y:(MAX_COORD - (MAX_COORD/16.7)).round()};
+					hero.position = match i{
+						0 => radiant_fount_pos,
+						1 => radiant_fount_pos.swap_x_y(),
+						_ => radiant_fount_pos //not possible
+					};
+					hero.respawn_timer = 60;
+					hero.can_action = false;
+					hero.gold -= 20.; //add handling to not let overflow and proper func
+					hero.hp = hero.max_hp;
+					hero.mana = hero.max_mana;
+				}
+			}
+		};
 	}
 }
