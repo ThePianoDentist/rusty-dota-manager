@@ -11,6 +11,7 @@ extern crate rand;
 use piston_window::*;
 use opengl_graphics::{GlGraphics, Texture as gTexture};
 use graphics::math::Matrix2d;
+use std::collections::HashMap;
 #[macro_use]
 pub mod the_game;
 pub mod position;
@@ -21,12 +22,15 @@ use anhero::*;
 pub mod hero_ai;
 use hero_ai::*;
 use hero_ai::Action::*;
+pub mod neutral_creeps;
+use neutral_creeps::*;
 
 const GREEN: [f32; 4] = [0.0, 1.0, 0.0, 1.0];
 const RED:   [f32; 4] = [1.0, 0.0, 0.0, 1.0];
 const DARK_RED: [f32; 4] = [0.8, 0.1, 0.1, 1.0];
 const DARK_GREEN: [f32; 4] = [0.2, 0.8, 0.0, 1.0];
 const YELLOW: [f32; 4] = [1.0, 1.0, 0.0, 1.0];
+const BLUE: [f32; 4] = [0.0, 0.0, 1.0, 1.0];
 
 fn render_text(face: &mut freetype::Face, gl: &mut GlGraphics, t: Matrix2d, text: &str) {
     let mut x = 10;
@@ -57,6 +61,7 @@ fn render_text(face: &mut freetype::Face, gl: &mut GlGraphics, t: Matrix2d, text
 }
 
 pub struct App<'a>{
+    face: freetype::Face<'a>,
     gl: GlGraphics, // OpenGL drawing backend.
     window: PistonWindow,
     background: &'a opengl_graphics::Texture, // no idea why the 'a necessary. but doesnt work without. im such bad progrummer lol
@@ -74,17 +79,22 @@ impl<'a> App<'a>{
 
     fn update_game(&mut self, game: &Game, args: &RenderArgs) {
 		let background = self.background;
+        let mut face = &mut self.face;
 		self.gl.draw(args.viewport(), |c, gl| {
-			clear(GREEN, gl);
+			clear(YELLOW, gl);
 
 			image(background, c.transform, gl);
+		});
+		self.gl.draw(args.viewport(), |c, gl| {
+				let transform = c.transform.trans(100., 650.0);
+                render_text(&mut face, gl, transform, "NAVI vs ALLIANCE")
 		});
 
 
 		for i in 0..2{
 			let team = &game.teams[i];
 			//Draw Towers
-			for tower in team.towers.iter(){
+			for tower in &team.towers{
 				self.gl.draw(args.viewport(), |c, gl| {
 					let transform = c.transform.trans(tower.position.x as f64, tower.position.y as f64);
 
@@ -142,17 +152,23 @@ impl<'a> App<'a>{
 					image(&hero.pic, transform, gl);
 				});
 			}
+
+            // Draw Neutral creeps
+            for (_, neutral) in &team.neutrals{
+                if neutral.hp > 0.{
+                    self.gl.draw(args.viewport(), |c, gl| {
+    					let transform = c.transform.trans(neutral.position.x as f64, neutral.position.y as f64);
+
+    					let square = rectangle::centered_square(0.0, 0.0, 4.0);
+                        ellipse(BLUE, square, transform, gl)
+    				});
+                }
+            }
 		}
 	}
 
     fn win_game(&mut self, side: &Side, args: &RenderArgs){
-		let assets = find_folder::Search::ParentsThenKids(3, 3)
-			.for_folder("assets").unwrap();
-		let freetype = freetype::Library::init().unwrap();
-		let font = assets.join("FiraSans-Regular.ttf");
-		let mut face = freetype.new_face(&font, 0).unwrap();
-		face.set_pixel_sizes(0, 48).unwrap();
-
+        let mut face = &mut self.face;
 		self.gl.draw(args.viewport(), |c, gl| {
 					let transform = c.transform.trans(0.0, 100.0);
 
@@ -167,14 +183,11 @@ impl<'a> App<'a>{
 
 fn main() {
     println!("Hello, world!");
-
-    // Change this to OpenGL::V2_1 if not working.
     let opengl = OpenGL::V2_1;
 
-    // Create an Glutin window.
     let mut window: PistonWindow = WindowSettings::new(
             "ooooh-shit-the-absolute-madman-it's-a-dota-football-manager-ripoff-blobs-everywhere",
-            [600, 600]
+            [600, 700]
         )
         .opengl(opengl)
         .exit_on_esc(true)
@@ -185,32 +198,28 @@ fn main() {
 
     let assets = find_folder::Search::ParentsThenKids(3, 3)
         .for_folder("assets").unwrap();
-    let rust_logo = assets.join("rsz_dota_minimap.jpg");
+    let freetype = freetype::Library::init().unwrap();
+    let font = assets.join("FiraSans-Regular.ttf");
+    let face = freetype.new_face(&font, 0).unwrap();
+    face.set_pixel_sizes(0, 48).unwrap();
+
+    let map_file = assets.join("rsz_dota_minimap.jpg");
     let rubick_pic = gTexture::from_path(
 					 assets.join("Rubick_icon.png")).unwrap();
 
-	let ta_pic = gTexture::from_path(
-					 assets.join("Templar_Assassin_icon.png")).unwrap();
-	let enigma_pic = gTexture::from_path(
-					 assets.join("Enigma_icon.png")).unwrap();
-	let batrider_pic = gTexture::from_path(
-					 assets.join("Batrider_icon.png")).unwrap();
-	let alchemist_pic = gTexture::from_path(
-					 assets.join("Alchemist_icon.png")).unwrap();
-	let io_pic = gTexture::from_path(
-					 assets.join("Io_icon.png")).unwrap();
-	let cm_pic = gTexture::from_path(
-					 assets.join("Crystal_Maiden_icon.png")).unwrap();
-	let np_pic = gTexture::from_path(
-					 assets.join("Natures_Prophet_icon.png")).unwrap();
-	let puck_pic = gTexture::from_path(
-					 assets.join("Puck_icon.png")).unwrap();
-	let ck_pic = gTexture::from_path(
-					 assets.join("Chaos_Knight_icon.png")).unwrap();
+	let ta_pic = gTexture::from_path(assets.join("Templar_Assassin_icon.png")).unwrap();
+	let enigma_pic = gTexture::from_path(assets.join("Enigma_icon.png")).unwrap();
+	let batrider_pic = gTexture::from_path(assets.join("Batrider_icon.png")).unwrap();
+	let alchemist_pic = gTexture::from_path(assets.join("Alchemist_icon.png")).unwrap();
+	let io_pic = gTexture::from_path(assets.join("Io_icon.png")).unwrap();
+	let cm_pic = gTexture::from_path(assets.join("Crystal_Maiden_icon.png")).unwrap();
+	let np_pic = gTexture::from_path(assets.join("Natures_Prophet_icon.png")).unwrap();
+	let puck_pic = gTexture::from_path(assets.join("Puck_icon.png")).unwrap();
+	let ck_pic = gTexture::from_path(assets.join("Chaos_Knight_icon.png")).unwrap();
 
-    let rust_logo = gTexture::from_path(
+    let map_pic = gTexture::from_path(
             //&mut window.factory,  these are here for piston window but not gl window
-            &rust_logo,
+            &map_file,
             //Flip::None,
             //&TextureSettings::new()
 	).unwrap();
@@ -219,7 +228,8 @@ fn main() {
     let mut app = App {
         gl: GlGraphics::new(opengl),
         window: window,
-        background: &rust_logo
+        background: &map_pic,
+        face: face
     };
 
     let mut events = app.window.events();
@@ -285,14 +295,14 @@ fn main() {
 
 	let dire_throne = Throne{position: radiant_throne.position.swap_x_y(), .. radiant_throne};
 
-    let rubick_decision = Decision{action:DefendBotTower, probability: 1.};
-    let enigma_decision = Decision{action:MoveToFountain, probability: 1.};
+    let rubick_decision = Decision{action:FollowHeroOne, probability: 1.};
+    let enigma_decision = Decision{action:GankBot, probability: 1.};
     let ta_decision = Decision{action:FarmMidLane, probability: 1.};
     let batrider_decision = Decision{action:FarmTopLane, probability: 1.};
     let alchemist_decision = Decision{action:FarmBotLane, probability: 1.};
 
     let io_decision = Decision{action:DefendBotTower, probability: 1.};
-    let cm_decision = Decision{action:DefendMidTower, probability: 1.};
+    let cm_decision = Decision{action:FarmFriendlyJungle, probability: 1.};
     let np_decision = Decision{action:FarmTopLane, probability: 1.};
     let puck_decision = Decision{action:FarmMidLane, probability: 1.};
     let ck_decision = Decision{action:FarmBotLane, probability: 1.};
@@ -326,27 +336,62 @@ fn main() {
 					respawn_timer: 0,
 					range: 30.,
                     decisions: vec!(rubick_decision),
-                    current_decision: rubick_decision
+                    current_decision: rubick_decision,
+                    side: Side::Radiant,
+                    priority: 5
 		};
 
-	let enigma = Hero{pic: enigma_pic, decisions: vec!(enigma_decision), current_decision: enigma_decision, .. rubick};
-	let alchemist = Hero{pic: alchemist_pic, decisions: vec!(alchemist_decision), current_decision: alchemist_decision, .. rubick};
-	let batrider = Hero{pic: batrider_pic, decisions: vec!(batrider_decision), current_decision: batrider_decision, .. rubick};
-	let ta = Hero{pic: ta_pic, decisions: vec!(ta_decision), current_decision: ta_decision, .. rubick};
-	let puck = Hero{position: dire_fount.position, pic: puck_pic, decisions: vec!(puck_decision), current_decision: puck_decision, .. rubick};
-	let io = Hero{position: dire_fount.position, pic: io_pic, decisions: vec!(io_decision), current_decision: io_decision, .. rubick};
-	let cm = Hero{position: dire_fount.position, pic: cm_pic, decisions: vec!(cm_decision), current_decision: cm_decision, .. rubick};
-	let ck = Hero{position: dire_fount.position, pic: ck_pic, name: "ck", decisions: vec!(ck_decision), current_decision: ck_decision, .. rubick};
-	let np = Hero{position: dire_fount.position, pic: np_pic, decisions: vec!(np_decision), current_decision: np_decision, .. rubick};
+	let enigma = Hero{pic: enigma_pic, decisions: vec!(enigma_decision), current_decision: enigma_decision, priority: 4,.. rubick};
+	let alchemist = Hero{pic: alchemist_pic, decisions: vec!(alchemist_decision), current_decision: alchemist_decision, priority: 1, .. rubick};
+	let batrider = Hero{pic: batrider_pic, decisions: vec!(batrider_decision), current_decision: batrider_decision, priority: 3, .. rubick};
+	let ta = Hero{pic: ta_pic, decisions: vec!(ta_decision), current_decision: ta_decision, priority: 2, .. rubick};
+	let puck = Hero{position: dire_fount.position, pic: puck_pic, decisions: vec!(puck_decision), current_decision: puck_decision, side: Side::Dire, priority: 2,.. rubick};
+	let io = Hero{position: dire_fount.position, pic: io_pic, decisions: vec!(io_decision), current_decision: io_decision, priority: 4, .. puck};
+	let cm = Hero{position: dire_fount.position, pic: cm_pic, decisions: vec!(cm_decision), current_decision: cm_decision, priority: 5, .. puck};
+	let ck = Hero{position: dire_fount.position, pic: ck_pic, name: "ck", decisions: vec!(ck_decision), current_decision: ck_decision, priority: 1, .. puck};
+	let np = Hero{position: dire_fount.position, pic: np_pic, decisions: vec!(np_decision), current_decision: np_decision, priority: 3, .. puck};
 
+    let dire_hard_neutrals_1 = NeutralCamp{position: Position{x: 343., y: 176.}, max_hp: 300.,
+     stacked: 1, max_gold: 100, hp: 300.};
+    let dire_hard_neutrals_2 = NeutralCamp{position: Position{x: 138., y: 171.}, .. dire_hard_neutrals_1};
+    let dire_medium_neutrals_1 = NeutralCamp{position: Position{x: 287., y: 171.}, max_gold: 80, max_hp:250., hp: 250., .. dire_hard_neutrals_1};
+    let dire_medium_neutrals_2 = NeutralCamp{position: Position{x: 241., y: 209.}, .. dire_medium_neutrals_1};
+    let dire_easy_neutrals = NeutralCamp{position: Position{x: 188., y: 139.}, max_gold: 50, max_hp: 150., hp: 150., .. dire_hard_neutrals_1};
+    let dire_ancient_neutrals = NeutralCamp{position: Position{x: 459., y: 382.}, max_gold: 150, max_hp: 350., hp: 350., .. dire_medium_neutrals_1};
+
+    let radiant_hard_neutrals_1 = NeutralCamp{position: Position{x: 257., y: 462.}, .. dire_hard_neutrals_1};
+    let radiant_hard_neutrals_2 = NeutralCamp{position: Position{x: 417., y: 442.}, .. radiant_hard_neutrals_1};
+    let radiant_medium_neutrals_1 = NeutralCamp{position: Position{x: 286., y: 424.}, max_gold: 80, max_hp: 250., hp: 250., .. radiant_hard_neutrals_1};
+    let radiant_medium_neutrals_2 = NeutralCamp{position: Position{x: 361., y: 445.}, .. radiant_medium_neutrals_1};
+    let radiant_easy_neutrals = NeutralCamp{position: Position{x: 417., y: 484.}, max_gold: 50, max_hp:150., hp: 150., .. radiant_hard_neutrals_1};
+    let radiant_ancient_neutrals = NeutralCamp{position: Position{x: 183., y: 305.}, max_gold: 150, max_hp: 250., hp: 350., .. radiant_medium_neutrals_1};
+
+    let mut radiant_neutrals = HashMap::new();
+    radiant_neutrals.insert("hard_camp_1", radiant_hard_neutrals_1);
+    radiant_neutrals.insert("hard_camp_2", radiant_hard_neutrals_2);
+    radiant_neutrals.insert("medium_camp_1", radiant_medium_neutrals_1);
+    radiant_neutrals.insert("medium_camp_2", radiant_medium_neutrals_2);
+    radiant_neutrals.insert("easy_camp", radiant_easy_neutrals);
+    radiant_neutrals.insert("ancient_camp", radiant_ancient_neutrals);
+
+    let mut dire_neutrals = HashMap::new();
+    dire_neutrals.insert("hard_camp_1", dire_hard_neutrals_1);
+    dire_neutrals.insert("hard_camp_2", dire_hard_neutrals_2);
+    dire_neutrals.insert("medium_camp_1", dire_medium_neutrals_1);
+    dire_neutrals.insert("medium_camp_2", dire_medium_neutrals_2);
+    dire_neutrals.insert("easy_camp", dire_easy_neutrals);
+    dire_neutrals.insert("ancient_camp", dire_ancient_neutrals);
 
 	let radiant = Team{side: Side::Radiant, towers: vec!(t1_rad_tower, t2_rad_tower, t3_rad_tower, t1_rad_top_tower,
 		t2_rad_top_tower, t3_rad_top_tower, t1_rad_bot_tower, t2_rad_bot_tower, t3_rad_bot_tower),
-		fountain: radiant_fount, throne: radiant_throne, lane_creeps: vec!(), heroes: [rubick, enigma, alchemist, ta, batrider]};
+		fountain: radiant_fount, throne: radiant_throne, lane_creeps: vec!(),
+         heroes: [rubick, enigma, alchemist, ta, batrider],
+         neutrals: radiant_neutrals};
 
 	let dire = Team{side: Side::Dire, towers: vec!(tower, t2_dire_tower, t3_dire_tower, t1_dire_top_tower, t2_dire_top_tower,
 		 t3_dire_top_tower, t1_dire_bot_tower, t2_dire_bot_tower, t3_dire_bot_tower),
-		fountain: dire_fount, throne: dire_throne, lane_creeps: vec!(), heroes: [io, cm, ck, np, puck]};
+		fountain: dire_fount, throne: dire_throne, lane_creeps: vec!(), heroes: [io, cm, ck, np, puck],
+        neutrals: dire_neutrals};
 
 	let mut game = Game{
 		game_tick: 0,
@@ -391,7 +436,7 @@ fn main() {
 				game.teams[1].lane_creeps.push(new_dire_bot_creep);
 			};
 		}
-		println!("game time {}", game.game_tick);
+		//println!("game time {}", game.game_tick);
 
 		game.reset_all_attack_cooldown();
 
@@ -399,8 +444,7 @@ fn main() {
             let (rad, dire) = game.teams.split_at_mut(1);
 			let (mut us, mut them) = match i{
 				0 => (&mut rad[0], &mut dire[0]),
-				1 => (&mut dire[0], &mut rad[0]),
-				_ => panic!("I'm pretty sure this is impossible")
+				_ => (&mut dire[0], &mut rad[0])
 			};
 
             us.fountain.attack_enemy_creeps(&mut them.lane_creeps);
@@ -417,39 +461,19 @@ fn main() {
 				if !creep.can_action{continue};
 				creep.attack_closest_hero(&mut them.heroes);
 				if !creep.can_action{continue};
-				creep.attack_throne(&mut them.throne);
+				creep.attack_throne(&mut them.throne)
 			}
 
-            /*if game.game_tick == 0{
-                let my_decision = Decision{action: Action::FARM_TOP_LANE, probability: 1.};
-                us.heroes[3].decisions.push(my_decision);
-            }
+            let our_friends = us.get_other_hero_info();
 
-            if i == 0{
-            match game.game_tick{
-    			x if x < 1300 => us.heroes[0].move_towards_creeps(Lane::Bot, &them.lane_creeps),
-    			x if x < 2000 => us.heroes[0].move_towards_creeps(Lane::Mid, &them.lane_creeps),
-    			_ => us.heroes[0].move_towards_creeps(Lane::Top, &them.lane_creeps),
-    		}}*/
-
-            /*if i == 1{
-    		us.heroes[0].move_towards_creeps(Lane::Mid, &them.lane_creeps);
-    		us.heroes[1].move_towards_creeps(Lane::Top, &them.lane_creeps);
-    		us.heroes[2].move_towards_creeps(Lane::Bot, &them.lane_creeps);
-            }
-            else{us.heroes[1].move_towards_creeps(Lane::Mid, &them.lane_creeps);
-    		us.heroes[2].move_towards_creeps(Lane::Top, &them.lane_creeps);
-    		//us.heroes[3].move_towards_creeps(Lane::Bot, &them.lane_creeps, &game.TOP_LANE_VERTEX, &game.BOT_LANE_VERTEX);
-    		us.heroes[4].move_towards_creeps(Lane::Mid, &us.lane_creeps);
-        }*/
-            for hero in us.heroes.iter_mut(){
+            for hero in &mut us.heroes{
                 hero.process_decision(&mut us.lane_creeps, &mut them.lane_creeps, &mut them.towers, &us.towers,
-                    &mut them.heroes, us.fountain.position);
-                println!("GOOLD {}", hero.gold);
+                    &mut them.heroes, &our_friends, &mut us.neutrals, &mut them.neutrals, us.fountain.position);
+                //println!("GOOLD {}", hero.gold);
             }
 
             // Looping twice cos might be sensible to let all hero actions finish before updating decisions
-            for hero in us.heroes.iter_mut(){
+            for hero in &mut us.heroes{
                 if hero.should_change_decision(){
                     hero.change_decision();
                 }
@@ -458,15 +482,19 @@ fn main() {
 
 		game.kill_off_creeps();
 		game.kill_off_heroes();
+        if game.game_tick % 60 == 0{
+            game.respawn_neutrals();
+        }
 		if game.game_tick % 2 == 0 {game.teams[0].move_creeps_radiant();
 			game.teams[1].move_creeps_dire()};
+
 		while let Some(e) = events.next(&mut app.window) {
 			if let Some(r) = e.render_args() {
 				app.update_game(&game, &r);
 				break;
 			}
 		}
-		for team in game.teams.iter(){
+		for team in &game.teams{
 			if !team.throne.hp.is_positive(){
 				while let Some(e) = events.next(&mut app.window){
 					if let Some(r) = e.render_args() {
@@ -477,19 +505,5 @@ fn main() {
 			}
 		};
 		game.game_tick += 1;
-        /*
-		match game.game_tick{
-			x if x < 1300 => game.teams[0].heroes[0].move_towards_creeps(Lane::Bot, &game.teams[1].lane_creeps),
-			x if x < 2000 => game.teams[0].heroes[0].move_towards_creeps(Lane::Mid, &game.teams[1].lane_creeps),
-			_ => game.teams[0].heroes[0].move_towards_creeps(Lane::Top, &game.teams[1].lane_creeps),
-		}
-		game.teams[1].heroes[0].move_towards_creeps(Lane::Mid, &game.teams[0].lane_creeps);
-		game.teams[1].heroes[1].move_towards_creeps(Lane::Top, &game.teams[0].lane_creeps);
-		game.teams[1].heroes[2].move_towards_creeps(Lane::Bot, &game.teams[0].lane_creeps);
-		game.teams[0].heroes[1].move_towards_creeps(Lane::Mid, &game.teams[1].lane_creeps);
-		game.teams[0].heroes[2].move_towards_creeps(Lane::Top, &game.teams[1].lane_creeps);
-		//game.teams[0].heroes[3].move_towards_creeps(Lane::Bot, &game.teams[1].lane_creeps, &game.TOP_LANE_VERTEX, &game.BOT_LANE_VERTEX);
-		game.teams[0].heroes[4].move_towards_creeps(Lane::Mid, &game.teams[0].lane_creeps);
-        */
 	}
 }

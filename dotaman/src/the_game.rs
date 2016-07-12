@@ -1,7 +1,9 @@
 extern crate rand;
 extern crate opengl_graphics;
+use std::collections::HashMap;
 use position::*;
 use anhero::*;
+use neutral_creeps::*;
 
 pub const MAX_COORD: f32  = 600.0;
 
@@ -12,7 +14,7 @@ pub enum Lane{
 	Bot
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Side{
 	Radiant,
 	Dire
@@ -30,7 +32,8 @@ pub struct Team{
 	pub fountain: Fountain,
 	pub throne: Throne,
 	pub lane_creeps: Vec<Creep>,
-	pub heroes: [Hero; 5]
+	pub heroes: [Hero; 5],
+	pub neutrals: HashMap<&'static str, NeutralCamp>,
 }
 
 #[derive(Copy, Clone)]
@@ -88,11 +91,12 @@ impl TimeTick for Game{
 	}
 }
 
-pub trait ResetAllAttacking{
+pub trait ResetStuff{
 	fn reset_all_attack_cooldown(&mut self);
+	fn respawn_neutrals(&mut self);
 }
 
-impl ResetAllAttacking for Game{
+impl ResetStuff for Game{
 	fn reset_all_attack_cooldown(&mut self){
 		for i in 0..2{
 			for creep in &mut self.teams[i].lane_creeps{creep.can_action = true;};
@@ -104,10 +108,19 @@ impl ResetAllAttacking for Game{
 			self.teams[i].fountain.can_action = true;
 		}
 	}
+
+	fn respawn_neutrals(&mut self){
+		for i in 0..2{
+			for (camp_name, camp) in &mut self.teams[i].neutrals{
+				camp.respawn(); // checks if camp neg hp. is so respawn with maxhp
+			}
+		}
+	}
 }
 
 pub trait AttackCreeps{
 	fn attack_enemy_creeps(&mut self, &mut Vec<Creep>);
+	fn attack_neutral(&mut self, neutral: &mut NeutralCamp);
 }
 
 
@@ -115,7 +128,7 @@ macro_rules! impl_AttackCreeps {
     ($T:ident) => {
 		impl AttackCreeps for $T{
 			fn attack_enemy_creeps(&mut self, enemy_creeps: &mut Vec<Creep>){
-				for creep in &mut enemy_creeps.iter_mut(){
+				for creep in enemy_creeps.iter_mut(){
 					if self.position.distance_between(creep.position) < self.range{
 						self.attack_cooldown -= 1.;
 						self.can_action = false;
@@ -126,6 +139,10 @@ macro_rules! impl_AttackCreeps {
 						break;
 					}
 				}
+			}
+
+			fn attack_neutral(&mut self, neutral: &mut NeutralCamp){
+				println!("not done yet");
 			}
 		}
 	}
@@ -145,7 +162,7 @@ macro_rules! impl_AttackClosestHero{
 	($T: ident) => {
 	impl AttackClosestHero for $T{
 			fn attack_closest_hero(&mut self, enemy_heroes: &mut [Hero]){
-				for hero in &mut enemy_heroes.iter_mut(){
+				for hero in enemy_heroes.iter_mut(){
 					if self.position.distance_between(hero.position) < self.range && self.can_action{
 						self.can_action = false;
 						self.attack_cooldown -= 1.;
@@ -185,7 +202,7 @@ macro_rules! impl_AttackBuilding {
     ($T:ident) => {
         impl AttackBuilding for $T {
             fn attack_towers(&mut self, enemy_towers: &mut Vec<Tower>){
-				for tower in &mut enemy_towers.iter_mut(){
+				for tower in enemy_towers.iter_mut(){
 					if self.position.distance_between(tower.position) < self.range{
 						self.can_action = false;
 						self.attack_cooldown -= 1.;
@@ -339,5 +356,19 @@ impl KillOff for Game{
 				}
 			}
 		};
+	}
+}
+
+pub trait GetHeroInfo{
+	fn get_other_hero_info(&mut self) -> Vec<HeroInfo>;
+}
+
+impl GetHeroInfo for Team{
+	fn get_other_hero_info(&mut self) -> Vec<HeroInfo>{
+		let mut other_heroes = vec!();
+		for hero in &self.heroes{
+			other_heroes.push(hero.hero_to_hero_info())
+		}
+		other_heroes
 	}
 }
