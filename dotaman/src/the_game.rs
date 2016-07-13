@@ -24,6 +24,7 @@ pub struct Game {
 	pub game_tick: u64,
 	pub game_time: f32,
 	pub teams: [Team; 2],
+	pub commentary_string: String,
 }
 
 pub struct Team{
@@ -94,6 +95,7 @@ impl TimeTick for Game{
 pub trait ResetStuff{
 	fn reset_all_attack_cooldown(&mut self);
 	fn respawn_neutrals(&mut self);
+	fn fountain_heal(&mut self);
 }
 
 impl ResetStuff for Game{
@@ -113,6 +115,18 @@ impl ResetStuff for Game{
 		for i in 0..2{
 			for (camp_name, camp) in &mut self.teams[i].neutrals{
 				camp.respawn(); // checks if camp neg hp. is so respawn with maxhp
+			}
+		}
+	}
+
+	fn fountain_heal(&mut self){
+		for i in 0..2{
+			let team = &mut self.teams[i];
+			for hero in &mut team.heroes{
+				if hero.position == team.fountain.position{
+					hero.hp += 50.;
+					if hero.hp > hero.max_hp{hero.hp = hero.max_hp}
+				}
 			}
 		}
 	}
@@ -335,7 +349,30 @@ pub trait KillOff{
 
 impl KillOff for Game{
 	fn kill_off_creeps(&mut self){
-		for i in 0..2{self.teams[i].lane_creeps.retain(|&i| i.hp > 0)};
+		for i in 0..2{
+			let (rad, dire) = self.teams.split_at_mut(1);
+			let (mut us, mut them) = match i{
+				0 => (&mut rad[0], &mut dire[0]),
+				_ => (&mut dire[0], &mut rad[0])
+			};
+			for creep in &mut us.lane_creeps{
+				if creep.hp < 0{
+					let mut heroes_in_xp_range = 0;
+					for hero in &them.heroes{
+						if hero.position.distance_between(creep.position) <= 200.{
+							heroes_in_xp_range += 1;
+						}
+					};
+					for hero in &mut them.heroes{
+						if hero.position.distance_between(creep.position) <= 200.{
+							hero.xp += 50. / heroes_in_xp_range as f32;
+						}
+					}
+					// I dont think its safe/wise to do the delete in the loop. so just loop again down below?
+				}
+			}
+			us.lane_creeps.retain(|&i| i.hp > 0);
+		};
 	}
 
 	fn kill_off_heroes(&mut self){

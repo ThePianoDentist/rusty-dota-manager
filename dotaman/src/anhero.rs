@@ -5,6 +5,7 @@ extern crate rand;
 use rand::Rng;
 use hero_ai::*;
 use std::collections::HashMap;
+use std::collections::hash_map::Entry::{Occupied, Vacant};
 use neutral_creeps::*;
 
 const MAGIC_NUMBER: f32 = MAX_COORD *(7.0/8.0);
@@ -18,6 +19,7 @@ pub struct Hero{
 	pub name: &'static str,
 	pub pic: opengl_graphics::Texture,
 	pub level: u32,
+	pub xp: f32,
 	pub base_int: i32,
 	pub base_str: i32,
 	pub base_agi: i32,
@@ -310,25 +312,17 @@ impl Farm for Hero{
 	}
 
 	fn farm_ancients(&mut self, neutral_creeps: &mut HashMap<&'static str, NeutralCamp>){
-
-		let mut distance_from = 9001.;
-		let mut ancient_camp = None;
-		for (camp_name, camp) in neutral_creeps{
-			match (camp_name, self.position.distance_between(camp.position)){
-				(n, d) if n.to_string() == "ancient_camp" => {ancient_camp = Some(camp);
-					distance_from = d
-				},
-				_ => {},
-			}
-		}
-		// currently if all creeps dead will just sit there afk
-		//let mut ancient_camp = neutral_creeps.get_mut("ancient_camp"); // do I need the if let some style if I know this there?
+		let ancient_camp = match neutral_creeps.entry("ancient_camp"){
+			Vacant(_) => None,
+			Occupied(entry) => Some(entry.into_mut()),
+		};
 		if ancient_camp.is_some(){
-			if distance_from > self.range{
-				self.move_directly_to(&ancient_camp.unwrap().position);
+			let a = ancient_camp.unwrap();
+			if self.position.distance_between(a.position) > self.range{
+				self.move_directly_to(&a.position);
 			}
 			else{
-				self.attack_neutral(ancient_camp.unwrap());
+				self.attack_neutral(a);
 			}
 		}
 	}

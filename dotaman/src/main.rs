@@ -85,9 +85,12 @@ impl<'a> App<'a>{
 
 			image(background, c.transform, gl);
 		});
+
+        // Type the commentary string
 		self.gl.draw(args.viewport(), |c, gl| {
 				let transform = c.transform.trans(100., 650.0);
-                render_text(&mut face, gl, transform, "NAVI vs ALLIANCE")
+                let commentary = game.commentary_string.to_owned();
+                render_text(&mut face, gl, transform, &commentary[..])
 		});
 
 
@@ -295,6 +298,29 @@ fn main() {
 
 	let dire_throne = Throne{position: radiant_throne.position.swap_x_y(), .. radiant_throne};
 
+    //Hmmm cant iterate over enums on stable
+    let decisions = vec!(Decision{probability: 0., action: FarmTopLane},
+    Decision{probability: 0., action: FarmBotLane},
+    Decision{probability: 0., action: FarmMidLane},
+    Decision{probability: 0., action: DefendTopTower},
+    Decision{probability: 0., action: DefendMidTower},
+    Decision{probability: 0., action: DefendBotTower},
+    Decision{probability: 0., action: MoveToFountain},
+    Decision{probability: 0., action: GankTop},
+    Decision{probability: 0., action: GankMid},
+    Decision{probability: 0., action: GankBot},
+    Decision{probability: 0., action: FollowHeroOne},
+    Decision{probability: 0., action: FollowHeroTwo},
+    Decision{probability: 0., action: FollowHeroThree},
+    Decision{probability: 0., action: FollowHeroFour},
+    Decision{probability: 0., action: FollowHeroFive},
+    Decision{probability: 0., action: StackAncients},
+    Decision{probability: 0., action: StackJungle},
+    Decision{probability: 0., action: FarmFriendlyJungle},
+    Decision{probability: 0., action: FarmEnemyJungle},
+    Decision{probability: 0., action: FarmFriendlyAncients},
+    Decision{probability: 0., action: FarmEnemyAncients});
+
     let rubick_decision = Decision{action:FollowHeroOne, probability: 1.};
     let enigma_decision = Decision{action:GankBot, probability: 1.};
     let ta_decision = Decision{action:FarmMidLane, probability: 1.};
@@ -335,21 +361,22 @@ fn main() {
 					velocity: Velocity{x: 0., y: 0.},
 					respawn_timer: 0,
 					range: 30.,
-                    decisions: vec!(rubick_decision),
+                    decisions: decisions.clone(),
                     current_decision: rubick_decision,
                     side: Side::Radiant,
-                    priority: 5
+                    priority: 5,
+                    xp: 0.0,
 		};
 
-	let enigma = Hero{pic: enigma_pic, decisions: vec!(enigma_decision), current_decision: enigma_decision, priority: 4,.. rubick};
-	let alchemist = Hero{pic: alchemist_pic, decisions: vec!(alchemist_decision), current_decision: alchemist_decision, priority: 1, .. rubick};
-	let batrider = Hero{pic: batrider_pic, decisions: vec!(batrider_decision), current_decision: batrider_decision, priority: 3, .. rubick};
-	let ta = Hero{pic: ta_pic, decisions: vec!(ta_decision), current_decision: ta_decision, priority: 2, .. rubick};
-	let puck = Hero{position: dire_fount.position, pic: puck_pic, decisions: vec!(puck_decision), current_decision: puck_decision, side: Side::Dire, priority: 2,.. rubick};
-	let io = Hero{position: dire_fount.position, pic: io_pic, decisions: vec!(io_decision), current_decision: io_decision, priority: 4, .. puck};
-	let cm = Hero{position: dire_fount.position, pic: cm_pic, decisions: vec!(cm_decision), current_decision: cm_decision, priority: 5, .. puck};
-	let ck = Hero{position: dire_fount.position, pic: ck_pic, name: "ck", decisions: vec!(ck_decision), current_decision: ck_decision, priority: 1, .. puck};
-	let np = Hero{position: dire_fount.position, pic: np_pic, decisions: vec!(np_decision), current_decision: np_decision, priority: 3, .. puck};
+	let enigma = Hero{pic: enigma_pic, decisions: decisions.clone(), current_decision: enigma_decision, priority: 4,.. rubick};
+	let alchemist = Hero{pic: alchemist_pic, decisions: decisions.clone(), current_decision: alchemist_decision, priority: 1, .. rubick};
+	let batrider = Hero{pic: batrider_pic, decisions: decisions.clone(), current_decision: batrider_decision, priority: 3, .. rubick};
+	let ta = Hero{pic: ta_pic, decisions: decisions.clone(), current_decision: ta_decision, priority: 2, .. rubick};
+	let puck = Hero{position: dire_fount.position, pic: puck_pic, decisions: decisions.clone(), current_decision: puck_decision, side: Side::Dire, priority: 2,.. rubick};
+	let io = Hero{position: dire_fount.position, pic: io_pic, decisions:decisions.clone(), current_decision: io_decision, priority: 4, .. puck};
+	let cm = Hero{position: dire_fount.position, pic: cm_pic, decisions: decisions.clone(), current_decision: cm_decision, priority: 5, .. puck};
+	let ck = Hero{position: dire_fount.position, pic: ck_pic, name: "ck", decisions: decisions.clone(), current_decision: ck_decision, priority: 1, .. puck};
+	let np = Hero{position: dire_fount.position, pic: np_pic, decisions: decisions.clone(), current_decision: np_decision, priority: 3, .. puck};
 
     let dire_hard_neutrals_1 = NeutralCamp{position: Position{x: 343., y: 176.}, max_hp: 300.,
      stacked: 1, max_gold: 100, hp: 300.};
@@ -397,6 +424,7 @@ fn main() {
 		game_tick: 0,
 		game_time: 0.0,
 		teams: [radiant, dire],
+        commentary_string: "Navi vs Alliance".to_string()
 	};
 
 	'outer: loop {
@@ -469,12 +497,11 @@ fn main() {
             for hero in &mut us.heroes{
                 hero.process_decision(&mut us.lane_creeps, &mut them.lane_creeps, &mut them.towers, &us.towers,
                     &mut them.heroes, &our_friends, &mut us.neutrals, &mut them.neutrals, us.fountain.position);
-                //println!("GOOLD {}", hero.gold);
             }
 
             // Looping twice cos might be sensible to let all hero actions finish before updating decisions
             for hero in &mut us.heroes{
-                if hero.should_change_decision(){
+                if hero.should_change_decision(us.fountain.position){
                     hero.change_decision();
                 }
             }
@@ -482,6 +509,7 @@ fn main() {
 
 		game.kill_off_creeps();
 		game.kill_off_heroes();
+        game.fountain_heal();
         if game.game_tick % 60 == 0{
             game.respawn_neutrals();
         }
@@ -505,5 +533,14 @@ fn main() {
 			}
 		};
 		game.game_tick += 1;
+        game.commentary_string = match game.game_tick{
+            g if g % 500 == 0 => "Cyka Blyat".to_string(),
+            g if g % 400 == 0 => "nAvI vs aLlIanCe".to_string(),
+            g if g % 300 == 0 => "<commentary string goes here>".to_string(),
+            g if g % 200 == 0 => "WAOOOOW what a play!".to_string(),
+            g if g % 100 == 0 => "OMFG BTFO TBQH FAM".to_string(),
+            g if g % 50 == 0 => "NAVI vs ALLIANCE".to_string(),
+            _ => game.commentary_string
+        }
 	}
 }

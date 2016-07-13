@@ -46,19 +46,24 @@ pub trait Decisions{
 
     fn change_decision(&mut self);
 
-    fn should_change_decision(&mut self) -> bool;
+    fn should_change_decision(&mut self, Position) -> bool;
+
+    fn check_if_should_heal(&mut self) -> bool;
+
+    fn check_if_healed_fountain(&mut self, Position) -> bool;
 }
 
 impl Decisions for Hero{
     fn process_decision(&mut self, our_creeps: &mut Vec<Creep>, their_creeps: &mut Vec<Creep>, their_towers: &mut Vec<Tower>,
     our_towers: &Vec<Tower>, their_heroes: &mut [Hero; 5], our_friends: &Vec<HeroInfo>,
-     our_neutrals: &mut HashMap<&'static str, NeutralCamp>, their_neutrals: &mut HashMap<&'static str, NeutralCamp>, fountain_position: Position){
+     our_neutrals: &mut HashMap<&'static str, NeutralCamp>, their_neutrals: &mut HashMap<&'static str, NeutralCamp>,
+      fountain_position: Position){
         let friend_one = our_friends.into_iter().filter(|&x| x.priority == 1).collect::<Vec<&HeroInfo>>()[0];
         let friend_two = our_friends.into_iter().filter(|&x| x.priority == 2).collect::<Vec<&HeroInfo>>()[0];
         let friend_three = our_friends.into_iter().filter(|&x| x.priority == 3).collect::<Vec<&HeroInfo>>()[0];
         let friend_four = our_friends.into_iter().filter(|&x| x.priority == 4).collect::<Vec<&HeroInfo>>()[0];
         let friend_five = our_friends.into_iter().filter(|&x| x.priority == 5).collect::<Vec<&HeroInfo>>()[0];
-        match self.decisions[0].action{
+        match self.current_decision.action{
             Action::FarmTopLane => self.farm_lane(Lane::Top, our_creeps, their_creeps, their_towers),
             Action::FarmMidLane => self.farm_lane(Lane::Mid, our_creeps, their_creeps, their_towers),
             Action::FarmBotLane => self.farm_lane(Lane::Bot, our_creeps, their_creeps, their_towers),
@@ -87,6 +92,7 @@ impl Decisions for Hero{
         let mut prob_counter = 0.0;
         for decision in &self.decisions{
             prob_counter += decision.probability;
+            //println!("{}", prob_counter);
             match prob_counter{
                 prob if rand_num > prob => {},
                 _ => self.current_decision = *decision,
@@ -94,7 +100,35 @@ impl Decisions for Hero{
         }
     }
 
-    fn should_change_decision(&mut self) -> bool{
-        false
+    fn should_change_decision(&mut self, fountain_position: Position) -> bool{
+        if !self.check_if_should_heal(){
+            self.check_if_healed_fountain(fountain_position)
+        }
+        else{
+            true
+        }
+    }
+
+    fn check_if_should_heal(&mut self) -> bool{
+        if self.hp < self.max_hp / 3. {
+            self.decisions.push(Decision{probability: 1., action: Action::MoveToFountain});
+            true
+        }
+        else{false}
+    }
+
+    fn check_if_healed_fountain(&mut self, fountain_position: Position) -> bool {
+        //will there be a bug if fountain diving
+        if self.xp > 0. && self.position == fountain_position
+        && self.hp >= self.max_hp{
+            let len = self.decisions.len();
+            self.decisions.remove(len - 1);
+            self.decisions.push(Decision{probability: 1., action: Action::FarmFriendlyJungle});
+            true
+        }
+        else{
+            false
+        }
+         // makes sure we dont switch decision right at start of game
     }
 }
