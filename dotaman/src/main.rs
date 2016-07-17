@@ -22,6 +22,7 @@ use anhero::*;
 pub mod hero_ai;
 use hero_ai::*;
 use hero_ai::Action::*;
+use hero_ai::TeamAction::*;
 pub mod neutral_creeps;
 use neutral_creeps::*;
 
@@ -60,6 +61,19 @@ fn render_text(face: &mut freetype::Face, gl: &mut GlGraphics, t: Matrix2d, text
     }
 }
 
+#[macro_export]
+macro_rules! hashmap(
+  { $($key:expr => $value:expr),+ } => {
+    {
+      let mut m = HashMap::new();
+      $(
+        m.insert($key, $value);
+      )+
+      m
+    }
+ };
+);
+
 pub struct App<'a>{
     face: freetype::Face<'a>,
     gl: GlGraphics, // OpenGL drawing backend.
@@ -89,8 +103,10 @@ impl<'a> App<'a>{
         // Type the commentary string
 		self.gl.draw(args.viewport(), |c, gl| {
 				let transform = c.transform.trans(100., 650.0);
+                let game_time_transform = c.transform.trans(270., 100.0);
                 let commentary = game.commentary_string.to_owned();
-                render_text(&mut face, gl, transform, &commentary[..])
+                render_text(&mut face, gl, transform, &commentary[..]);
+                render_text(&mut face, gl, game_time_transform, &game.game_time.to_string()[..])
 		});
 
 
@@ -247,9 +263,9 @@ fn main() {
 	let tower = Tower{
 			lane: Lane::Mid,
 			tier: 1,
-			max_hp: 200,
-			hp: 200,
-			attack_damage: 30,
+			max_hp: 200.,
+			hp: 200.,
+			attack_damage: 30.,
 			can_action: true,
 			attack_cooldown: 3.0,
 			attack_rate: 3.0,
@@ -257,10 +273,11 @@ fn main() {
 			position: Position{x: (MAX_COORD/2.),
 				y: (MAX_COORD/2.),
 				},
+            gold: 0.
 		};
 	let t2_dire_pos = Position{x: (MAX_COORD/2.) + (MAX_COORD/8.), y: (MAX_COORD/2.) - (MAX_COORD/8.)};
-	let t2_dire_tower = Tower{tier: 2, max_hp: 300, hp: 300, position: t2_dire_pos, .. tower};
-	let t3_dire_tower = Tower{tier: 3, max_hp: 400, hp: 400,
+	let t2_dire_tower = Tower{tier: 2, max_hp: 300., hp: 300., position: t2_dire_pos, .. tower};
+	let t3_dire_tower = Tower{tier: 3, max_hp: 400., hp: 400.,
 		 position: Position{x: (MAX_COORD/2.) + (MAX_COORD/4.), y: (MAX_COORD/2.) - (MAX_COORD/4.)}, .. tower};
 
 	let t1_rad_tower = Tower{
@@ -288,61 +305,67 @@ fn main() {
 	let t2_dire_bot_tower = Tower{tier: 2, position: t3_dire_bot_tower.position.alter_y(MAX_COORD/6.), .. t3_dire_bot_tower};
 	let t1_dire_bot_tower = Tower{tier: 1, position: t2_dire_bot_tower.position.alter_y(MAX_COORD/6.), .. t2_dire_bot_tower};
 
-	let radiant_fount = Fountain{attack_damage: 300, range: 30., hp: 9999, attack_cooldown: 1.3, attack_rate: 1.3, can_action: true,//test with multiple of so get 0
+	let radiant_fount = Fountain{gold: 0., attack_damage: 300., range: 30., hp: 9999., attack_cooldown: 1.3, attack_rate: 1.3, can_action: true,//test with multiple of so get 0
 		 position: Position{x: (MAX_COORD/16.7).round(), y:(MAX_COORD - (MAX_COORD/16.7)).round()}};
 
 	let dire_fount = Fountain{position: radiant_fount.position.swap_x_y(), .. radiant_fount};
 
-	let radiant_throne = Throne{max_hp: 1000, hp: 1000,
+	let radiant_throne = Throne{max_hp: 1000., hp: 1000.,
 		 position: Position{x: 2.3*MAX_COORD/16.7, y:MAX_COORD - (2.3*MAX_COORD/16.7)}};
 
 	let dire_throne = Throne{position: radiant_throne.position.swap_x_y(), .. radiant_throne};
 
     //Hmmm cant iterate over enums on stable
-    let decisions = vec!(Decision{probability: 0., action: FarmTopLane},
-    Decision{probability: 0., action: FarmBotLane},
-    Decision{probability: 0., action: FarmMidLane},
-    Decision{probability: 0., action: DefendTopTower},
-    Decision{probability: 0., action: DefendMidTower},
-    Decision{probability: 0., action: DefendBotTower},
-    Decision{probability: 0., action: MoveToFountain},
-    Decision{probability: 0., action: GankTop},
-    Decision{probability: 0., action: GankMid},
-    Decision{probability: 0., action: GankBot},
-    Decision{probability: 0., action: FollowHeroOne},
-    Decision{probability: 0., action: FollowHeroTwo},
-    Decision{probability: 0., action: FollowHeroThree},
-    Decision{probability: 0., action: FollowHeroFour},
-    Decision{probability: 0., action: FollowHeroFive},
-    Decision{probability: 0., action: StackAncients},
-    Decision{probability: 0., action: StackJungle},
-    Decision{probability: 0., action: FarmFriendlyJungle},
-    Decision{probability: 0., action: FarmEnemyJungle},
-    Decision{probability: 0., action: FarmFriendlyAncients},
-    Decision{probability: 0., action: FarmEnemyAncients});
+    let mut decisions: HashMap<Action, f32> = hashmap!(
+        FarmBotLane => 0.,
+        FarmMidLane => 0. ,
+        FarmTopLane => 0.,
+        DefendTopTower => 0.,
+        DefendMidTower => 0.,
+        DefendBotTower => 0.,
+        MoveToFountain => 0.,
+        GankTop => 0.,
+        GankMid => 0.,
+        GankBot => 0.,
+        FollowHeroOne => 0.,
+        FollowHeroTwo => 0.,
+        FollowHeroThree => 0.,
+        FollowHeroFour => 0.,
+        FollowHeroFive => 0.,
+        StackAncients => 0.,
+        StackJungle => 0.,
+        FarmFriendlyJungle => 0.,
+        FarmEnemyJungle => 0.,
+        FarmFriendlyAncients => 0.,
+        FarmEnemyAncients => 0.
+        );
 
-    let rubick_decision = Decision{action:FollowHeroOne, probability: 1.};
-    let enigma_decision = Decision{action:GankBot, probability: 1.};
-    let ta_decision = Decision{action:FarmMidLane, probability: 1.};
-    let batrider_decision = Decision{action:FarmTopLane, probability: 1.};
-    let alchemist_decision = Decision{action:FarmBotLane, probability: 1.};
+    let rubick_decision = PullEasy;
+    let enigma_decision = GankBot;
+    let ta_decision = FarmMidLane;
+    let batrider_decision = FarmTopLane;
+    let alchemist_decision = FarmBotLane;
 
-    let io_decision = Decision{action:DefendBotTower, probability: 1.};
-    let cm_decision = Decision{action:FarmFriendlyJungle, probability: 1.};
-    let np_decision = Decision{action:FarmTopLane, probability: 1.};
-    let puck_decision = Decision{action:FarmMidLane, probability: 1.};
-    let ck_decision = Decision{action:FarmBotLane, probability: 1.};
+    let io_decision = PullEasy;
+    let cm_decision = FarmFriendlyJungle;
+    let np_decision = FarmTopLane;
+    let puck_decision = FarmMidLane;
+    let ck_decision = FarmBotLane;
 
 	let rubick = Hero{name: "rubick",
 					pic: rubick_pic,
-					base_int: 27,
-					base_str: 19,
-					base_agi: 14,
+					base_int: 27.,
+					base_str: 19.,
+					base_agi: 14.,
 					int_gain: 2.4,
 					str_gain: 1.5,
 					agi_gain: 1.6,
 					base_attack_damage: 27.0, // 17-27
-					move_speed: 290,
+					move_speed: 290.,
+                    hero_type: HeroType::Intelligence,
+                    strength: 19.,
+                	intelligence: 19.,
+                	agility: 14.,
 
 					can_action: true,
 					attack_damage: 27.0,
@@ -350,9 +373,13 @@ fn main() {
 					max_mana: 50.0,
 					gold: 650.0,
 					hp: 200.,
+                    base_hp: 200.,
 					hp_regen: 0.25,
+                    base_hp_regen: 0.25,
 					mana: 50.0,
+                    base_mana: 50.,
 					mana_regen: 0.01,
+                    base_mana_regen: 0.01,
 					attack_cooldown: -0.0001,
 					attack_rate: 1.0,
 					position: radiant_fount.position,
@@ -366,64 +393,95 @@ fn main() {
                     side: Side::Radiant,
                     priority: 5,
                     xp: 0.0,
+                    should_change_decision: false,
 		};
 
-	let enigma = Hero{pic: enigma_pic, decisions: decisions.clone(), current_decision: enigma_decision, priority: 4,.. rubick};
-	let alchemist = Hero{pic: alchemist_pic, decisions: decisions.clone(), current_decision: alchemist_decision, priority: 1, .. rubick};
-	let batrider = Hero{pic: batrider_pic, decisions: decisions.clone(), current_decision: batrider_decision, priority: 3, .. rubick};
-	let ta = Hero{pic: ta_pic, decisions: decisions.clone(), current_decision: ta_decision, priority: 2, .. rubick};
-	let puck = Hero{position: dire_fount.position, pic: puck_pic, decisions: decisions.clone(), current_decision: puck_decision, side: Side::Dire, priority: 2,.. rubick};
-	let io = Hero{position: dire_fount.position, pic: io_pic, decisions:decisions.clone(), current_decision: io_decision, priority: 4, .. puck};
-	let cm = Hero{position: dire_fount.position, pic: cm_pic, decisions: decisions.clone(), current_decision: cm_decision, priority: 5, .. puck};
-	let ck = Hero{position: dire_fount.position, pic: ck_pic, name: "ck", decisions: decisions.clone(), current_decision: ck_decision, priority: 1, .. puck};
-	let np = Hero{position: dire_fount.position, pic: np_pic, decisions: decisions.clone(), current_decision: np_decision, priority: 3, .. puck};
+	let enigma = Hero{name: "enigma", pic: enigma_pic, decisions: decisions.clone(), current_decision: enigma_decision, priority: 4,.. rubick};
+	let alchemist = Hero{name: "alchemist", pic: alchemist_pic, hero_type: HeroType::Strength, decisions: decisions.clone(), current_decision: alchemist_decision, priority: 1, .. rubick};
+	let batrider = Hero{name: "bat", pic: batrider_pic, decisions: decisions.clone(), current_decision: batrider_decision, priority: 3, .. rubick};
+	let ta = Hero{name: "ta", pic: ta_pic, hero_type: HeroType::Agility, decisions: decisions.clone(), current_decision: ta_decision, priority: 2, .. rubick};
+	let puck = Hero{name: "puck", hero_type: HeroType::Intelligence, position: dire_fount.position, pic: puck_pic, decisions: decisions.clone(), current_decision: puck_decision, side: Side::Dire, priority: 2,.. rubick};
+	let io = Hero{name: "io", position: dire_fount.position, hero_type: HeroType::Strength, pic: io_pic, decisions:decisions.clone(), current_decision: io_decision, priority: 4, .. puck};
+	let cm = Hero{name: "cm", position: dire_fount.position, pic: cm_pic, decisions: decisions.clone(), current_decision: cm_decision, priority: 5, .. puck};
+	let ck = Hero{position: dire_fount.position, hero_type: HeroType::Strength, pic: ck_pic, name: "ck", decisions: decisions.clone(), current_decision: ck_decision, priority: 1, .. puck};
+	let np = Hero{name: "np", hero_type: HeroType::Intelligence, position: dire_fount.position, pic: np_pic, decisions: decisions.clone(), current_decision: np_decision, priority: 3, .. puck};
 
-    let dire_hard_neutrals_1 = NeutralCamp{position: Position{x: 343., y: 176.}, max_hp: 300.,
-     stacked: 1, max_gold: 100, hp: 300.};
-    let dire_hard_neutrals_2 = NeutralCamp{position: Position{x: 138., y: 171.}, .. dire_hard_neutrals_1};
-    let dire_medium_neutrals_1 = NeutralCamp{position: Position{x: 287., y: 171.}, max_gold: 80, max_hp:250., hp: 250., .. dire_hard_neutrals_1};
-    let dire_medium_neutrals_2 = NeutralCamp{position: Position{x: 241., y: 209.}, .. dire_medium_neutrals_1};
-    let dire_easy_neutrals = NeutralCamp{position: Position{x: 188., y: 139.}, max_gold: 50, max_hp: 150., hp: 150., .. dire_hard_neutrals_1};
-    let dire_ancient_neutrals = NeutralCamp{position: Position{x: 459., y: 382.}, max_gold: 150, max_hp: 350., hp: 350., .. dire_medium_neutrals_1};
+    // correct to correct movespeed
+    let dire_hard_neutrals_1 = NeutralCamp{position: Position{x: 343., y: 176.}, home_position: Position{x: 343., y: 176.}, max_hp: 300.,
+     stacked: 1, max_gold: 100, hp: 300., attack_damage: 2., velocity: Velocity{x: 0., y: 0.}, move_speed: 300., aggro_position: None};
+    let dire_hard_neutrals_2 = NeutralCamp{position: Position{x: 138., y: 171.}, home_position: Position{x: 138., y: 171.}, .. dire_hard_neutrals_1};
+    let dire_medium_neutrals_1 = NeutralCamp{position: Position{x: 287., y: 171.}, home_position: Position{x: 287., y: 171.}, max_gold: 80, max_hp:250., hp: 250., .. dire_hard_neutrals_1};
+    let dire_medium_neutrals_2 = NeutralCamp{position: Position{x: 241., y: 209.}, home_position: Position{x: 241., y: 209.}, .. dire_medium_neutrals_1};
+    let dire_easy_neutrals = NeutralCamp{position: Position{x: 188., y: 139.}, home_position: Position{x: 188., y: 139.}, max_gold: 50, max_hp: 150., hp: 150., .. dire_hard_neutrals_1};
+    let dire_ancient_neutrals = NeutralCamp{position: Position{x: 459., y: 382.}, home_position: Position{x: 459., y: 382.}, max_gold: 150, max_hp: 350., hp: 350., .. dire_medium_neutrals_1};
 
-    let radiant_hard_neutrals_1 = NeutralCamp{position: Position{x: 257., y: 462.}, .. dire_hard_neutrals_1};
-    let radiant_hard_neutrals_2 = NeutralCamp{position: Position{x: 417., y: 442.}, .. radiant_hard_neutrals_1};
-    let radiant_medium_neutrals_1 = NeutralCamp{position: Position{x: 286., y: 424.}, max_gold: 80, max_hp: 250., hp: 250., .. radiant_hard_neutrals_1};
-    let radiant_medium_neutrals_2 = NeutralCamp{position: Position{x: 361., y: 445.}, .. radiant_medium_neutrals_1};
-    let radiant_easy_neutrals = NeutralCamp{position: Position{x: 417., y: 484.}, max_gold: 50, max_hp:150., hp: 150., .. radiant_hard_neutrals_1};
-    let radiant_ancient_neutrals = NeutralCamp{position: Position{x: 183., y: 305.}, max_gold: 150, max_hp: 250., hp: 350., .. radiant_medium_neutrals_1};
+    let radiant_hard_neutrals_1 = NeutralCamp{position: Position{x: 257., y: 462.}, home_position: Position{x: 257., y: 462.}, .. dire_hard_neutrals_1};
+    let radiant_hard_neutrals_2 = NeutralCamp{position: Position{x: 417., y: 442.}, home_position: Position{x: 417., y: 442.}, .. radiant_hard_neutrals_1};
+    let radiant_medium_neutrals_1 = NeutralCamp{position: Position{x: 286., y: 424.}, home_position: Position{x: 286., y: 424.}, max_gold: 80, max_hp: 250., hp: 250., .. radiant_hard_neutrals_1};
+    let radiant_medium_neutrals_2 = NeutralCamp{position: Position{x: 361., y: 445.}, home_position: Position{x: 361., y: 445.}, .. radiant_medium_neutrals_1};
+    let radiant_easy_neutrals = NeutralCamp{position: Position{x: 417., y: 484.}, home_position: Position{x: 417., y: 484.}, max_gold: 50, max_hp:150., hp: 150., .. radiant_hard_neutrals_1};
+    let radiant_ancient_neutrals = NeutralCamp{position: Position{x: 183., y: 305.}, home_position: Position{x: 183., y: 305.}, max_gold: 150, max_hp: 250., hp: 350., .. radiant_medium_neutrals_1};
 
-    let mut radiant_neutrals = HashMap::new();
-    radiant_neutrals.insert("hard_camp_1", radiant_hard_neutrals_1);
-    radiant_neutrals.insert("hard_camp_2", radiant_hard_neutrals_2);
-    radiant_neutrals.insert("medium_camp_1", radiant_medium_neutrals_1);
-    radiant_neutrals.insert("medium_camp_2", radiant_medium_neutrals_2);
-    radiant_neutrals.insert("easy_camp", radiant_easy_neutrals);
-    radiant_neutrals.insert("ancient_camp", radiant_ancient_neutrals);
+    let mut radiant_neutrals = hashmap!(
+        "hard_camp_1" => radiant_hard_neutrals_1,
+        "hard_camp_2" => radiant_hard_neutrals_2,
+        "medium_camp_1" => radiant_medium_neutrals_1,
+        "medium_camp_2" => radiant_medium_neutrals_2,
+        "easy_camp" => radiant_easy_neutrals,
+        "ancient_camp" => radiant_ancient_neutrals
+    );
 
-    let mut dire_neutrals = HashMap::new();
-    dire_neutrals.insert("hard_camp_1", dire_hard_neutrals_1);
-    dire_neutrals.insert("hard_camp_2", dire_hard_neutrals_2);
-    dire_neutrals.insert("medium_camp_1", dire_medium_neutrals_1);
-    dire_neutrals.insert("medium_camp_2", dire_medium_neutrals_2);
-    dire_neutrals.insert("easy_camp", dire_easy_neutrals);
-    dire_neutrals.insert("ancient_camp", dire_ancient_neutrals);
+    let mut dire_neutrals = hashmap!(
+        "hard_camp_1" => dire_hard_neutrals_1,
+        "hard_camp_2" => dire_hard_neutrals_2,
+        "medium_camp_1" => dire_medium_neutrals_1,
+        "medium_camp_2" => dire_medium_neutrals_2,
+        "easy_camp" => dire_easy_neutrals,
+        "ancient_camp" => dire_ancient_neutrals
+    );
+
+    let mut team_decisions = hashmap!(
+        TeamAction::IndividualChoice => 0.,
+        GreedyFarmAllLanesSupportsDefensive => 0.,
+        GreedyFarmAllLanesSupportsGanking => 0.,
+        DefendTowerFive => 0.,
+        DefendTowerFour => 0.,
+        FiveManTop => 0.,
+        FiveManBot => 0.,
+        FiveManMid => 0.,
+        FourManAttackTower => 0.,
+        GankEnemyJungle => 0.,
+        StandardLaning => 0.,
+        AggroLaning => 0.,
+        DualLaningOff => 0.,
+        DualLaningMid => 0.,
+        Roshing => 0.
+    );
 
 	let radiant = Team{side: Side::Radiant, towers: vec!(t1_rad_tower, t2_rad_tower, t3_rad_tower, t1_rad_top_tower,
 		t2_rad_top_tower, t3_rad_top_tower, t1_rad_bot_tower, t2_rad_bot_tower, t3_rad_bot_tower),
 		fountain: radiant_fount, throne: radiant_throne, lane_creeps: vec!(),
          heroes: [rubick, enigma, alchemist, ta, batrider],
-         neutrals: radiant_neutrals};
+         neutrals: radiant_neutrals,
+         current_decision: TeamAction::IndividualChoice,
+         decisions: team_decisions.clone(),
+         should_change_decision: false
+     };
 
 	let dire = Team{side: Side::Dire, towers: vec!(tower, t2_dire_tower, t3_dire_tower, t1_dire_top_tower, t2_dire_top_tower,
 		 t3_dire_top_tower, t1_dire_bot_tower, t2_dire_bot_tower, t3_dire_bot_tower),
 		fountain: dire_fount, throne: dire_throne, lane_creeps: vec!(), heroes: [io, cm, ck, np, puck],
-        neutrals: dire_neutrals};
+        neutrals: dire_neutrals,
+        current_decision: TeamAction::IndividualChoice,
+        decisions: team_decisions.clone(),
+        should_change_decision: false
+    };
 
 	let mut game = Game{
 		game_tick: 0,
-		game_time: 0.0,
+		game_time: 0,
 		teams: [radiant, dire],
+        xp_range: 200.,
         commentary_string: "Navi vs Alliance".to_string()
 	};
 
@@ -436,22 +494,24 @@ fn main() {
 						};
 				let new_radiant_top_creep = Creep{
 					lane: Lane::Top,
-					hp: 150,
-					attack_damage: 5,
+					hp: 150.,
+					attack_damage: 5.,
 					attack_cooldown: 1.6,
 					attack_rate: 1.6,
 					melee_attack: true,
 					can_action: true,
 					velocity: Velocity{x: 0., y: -1.},
 					range: 12.,
+                    move_speed: 325.,
 					position: position.small_random_pos_offset(),
+                    gold: 0.,
 				};
 				let new_radiant_bot_creep = Creep{lane: Lane::Bot, position: position.small_random_pos_offset(),
 					 velocity: Velocity{x: 1., y: 0.}, .. new_radiant_top_creep};
 				let new_radiant_mid_creep = Creep{lane: Lane::Mid, position: position.small_random_pos_offset(),
 					velocity: Velocity{x: 1., y: -1.}, .. new_radiant_top_creep};
 				let new_dire_top_creep = Creep{position: position.swap_x_y().small_random_pos_offset(),
-					 attack_damage: 3, velocity: Velocity{x: -1., y: 0.}, .. new_radiant_top_creep};
+					 attack_damage: 3., velocity: Velocity{x: -1., y: 0.}, .. new_radiant_top_creep};
 				let new_dire_bot_creep = Creep{lane: Lane::Bot, position: position.swap_x_y().small_random_pos_offset(),
 					velocity: Velocity{x: 0., y: 1.}, .. new_dire_top_creep};
 				let new_dire_mid_creep = Creep{lane: Lane::Mid, position: position.swap_x_y().small_random_pos_offset(),
@@ -485,6 +545,8 @@ fn main() {
             for creep in &mut us.lane_creeps{
 				creep.attack_enemy_creeps(&mut them.lane_creeps);
 				if !creep.can_action{continue};
+                creep.attack_all_neutrals(&mut us.neutrals); // should really not care about side
+				if !creep.can_action{continue};
 				creep.attack_towers(&mut them.towers);
 				if !creep.can_action{continue};
 				creep.attack_closest_hero(&mut them.heroes);
@@ -492,16 +554,31 @@ fn main() {
 				creep.attack_throne(&mut them.throne)
 			}
 
+            for (name, camp) in &mut us.neutrals{
+                if name.to_string() == "easy_camp"{
+                    camp.chase_aggro();
+                }
+            }
+
             let our_friends = us.get_other_hero_info();
 
             for hero in &mut us.heroes{
-                hero.process_decision(&mut us.lane_creeps, &mut them.lane_creeps, &mut them.towers, &us.towers,
+                hero.process_decision(us.side, &mut us.lane_creeps, &mut them.lane_creeps, &mut them.towers, &us.towers,
                     &mut them.heroes, &our_friends, &mut us.neutrals, &mut them.neutrals, us.fountain.position);
             }
 
+            // team level decision changes
+            let team_change_decision = us.should_change_team_decision(game.game_time);
+            if team_change_decision{
+                us.change_decision();
+                us.process_team_decision();
+            };
+
             // Looping twice cos might be sensible to let all hero actions finish before updating decisions
             for hero in &mut us.heroes{
-                if hero.should_change_decision(us.fountain.position){
+                // individual hero level decision changes
+                hero.should_change_decision = hero.should_change_decision(us.fountain.position, game.game_tick, &our_friends);
+                if hero.should_change_decision || team_change_decision{
                     hero.change_decision();
                 }
             }
@@ -509,12 +586,13 @@ fn main() {
 
 		game.kill_off_creeps();
 		game.kill_off_heroes();
+        game.kill_off_towers();
         game.fountain_heal();
-        if game.game_tick % 60 == 0{
+        if game.game_time % 60 == 0{
             game.respawn_neutrals();
         }
-		if game.game_tick % 2 == 0 {game.teams[0].move_creeps_radiant();
-			game.teams[1].move_creeps_dire()};
+		game.teams[0].move_creeps_radiant();
+		game.teams[1].move_creeps_dire();
 
 		while let Some(e) = events.next(&mut app.window) {
 			if let Some(r) = e.render_args() {
@@ -523,7 +601,7 @@ fn main() {
 			}
 		}
 		for team in &game.teams{
-			if !team.throne.hp.is_positive(){
+			if team.throne.hp <= 0.{
 				while let Some(e) = events.next(&mut app.window){
 					if let Some(r) = e.render_args() {
 						app.win_game(&team.side, &r)
@@ -533,6 +611,9 @@ fn main() {
 			}
 		};
 		game.game_tick += 1;
+        if game.game_tick % TIME_TO_TICK == 0{
+            game.game_time += 1
+        };
         game.commentary_string = match game.game_tick{
             g if g % 500 == 0 => "Cyka Blyat".to_string(),
             g if g % 400 == 0 => "nAvI vs aLlIanCe".to_string(),

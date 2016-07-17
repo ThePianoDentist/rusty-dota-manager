@@ -14,22 +14,37 @@ static BOT_LANE_VERTEX: Position = Position{x: MAGIC_NUMBER, y: MAGIC_NUMBER};
 static RADIANT_FOUNT_POS: Position = Position{x: MAX_COORD/20.0, y:MAX_COORD - (MAX_COORD/20.0)};
 static DIRE_FOUNT_POS: Position = Position{x: MAX_COORD - MAX_COORD/20.0, y:MAX_COORD/20.0};
 
+#[derive(Copy, Clone, PartialEq)]
+pub enum HeroType{
+	Strength,
+	Intelligence,
+	Agility
+}
+
 // Heroes
 pub struct Hero{
 	pub name: &'static str,
 	pub pic: opengl_graphics::Texture,
+	pub hero_type: HeroType,
 	pub level: u32,
 	pub xp: f32,
-	pub base_int: i32,
-	pub base_str: i32,
-	pub base_agi: i32,
+	pub base_int: f32,
+	pub base_str: f32,
+	pub base_agi: f32,
 	pub int_gain: f32,
 	pub str_gain: f32,
 	pub agi_gain: f32,
 	pub base_attack_damage: f32,
-	pub move_speed: i32,
+	pub move_speed: f32,
 	pub hp_regen: f32,
 	pub mana_regen: f32,
+	pub base_hp: f32,
+	pub base_mana : f32,
+	pub base_hp_regen: f32,
+	pub base_mana_regen: f32,
+	pub strength: f32,
+	pub intelligence: f32,
+	pub agility: f32,
 
 	pub can_action: bool,
 	pub max_mana: f32,
@@ -45,8 +60,9 @@ pub struct Hero{
 	pub velocity: Velocity, //not really being used
 	pub respawn_timer: i32,
 	pub range: f32,
-    pub decisions: Vec<Decision>,
-	pub current_decision: Decision,
+    pub decisions: HashMap<Action, f32>,
+	pub current_decision: Action,
+	pub should_change_decision: bool,
 	pub side: Side,
 	pub priority: u32,
 }
@@ -57,7 +73,7 @@ pub struct HeroInfo{
 	pub priority: u32,
 	pub hp: f32,
 	pub respawn_timer: i32,
-	pub current_decision: Decision,
+	pub current_decision: Action,
 }
 
 pub trait HeroToHeroInfo{
@@ -75,10 +91,18 @@ pub struct Skill{
 	pub name: str,
 }
 
+pub enum Rune{
+	DoubleDamage,
+	Haste,
+	Regen,
+	Illusion,
+	Bounty,
+}
+
 impl_AttackBuilding!(Hero);
 impl_AttackClosestHero!(Hero);
-//impl_AttackCreeps!(Hero); only heroes have gold
-impl AttackCreeps for Hero{
+impl_AttackCreeps!(Hero);
+/*impl AttackCreeps for Hero{
 	fn attack_enemy_creeps(&mut self, enemy_creeps: &mut Vec<Creep>){
 		for creep in enemy_creeps.iter_mut(){
 			if self.position.distance_between(creep.position) < self.range{
@@ -97,6 +121,7 @@ impl AttackCreeps for Hero{
 	}
 
 	fn attack_neutral(&mut self, neutral: &mut NeutralCamp){
+		self.hp -= neutral.attack_damage;
 		self.attack_cooldown -= 1.;
 		self.can_action = false;
 		if self.attack_cooldown < 0.0{
@@ -106,6 +131,50 @@ impl AttackCreeps for Hero{
 			}
 			self.attack_cooldown += self.attack_rate;
 		}
+	}
+}
+*/
+
+pub trait Stats{
+	fn update_hp(&mut self);
+	fn update_mana(&mut self);
+	fn update_mana_regen(&mut self);
+	fn update_hp_regen(&mut self);
+	fn update_attack_damage(&mut self);
+	fn update_level(&mut self);
+}
+
+impl Stats for Hero{
+	fn update_hp(&mut self){
+		let current_hp_percent = self.hp / self.max_hp;
+		self.max_hp = self.base_hp + (self.base_str + self.level as f32 * self.str_gain) * 20.;
+		self.hp = self.max_hp * current_hp_percent;
+	}
+
+	fn update_mana(&mut self){
+		let current_mana_percent = self.mana / self.max_mana;
+		self.max_mana = self.base_mana + (self.base_int + self.level as f32 * self.int_gain) * 12.;
+		self.mana = self.max_mana * current_mana_percent;
+	}
+
+	fn update_mana_regen(&mut self){
+		self.mana_regen = self.base_mana_regen + (self.base_int + self.level as f32 * self.int_gain) * 0.04;
+	}
+
+	fn update_hp_regen(&mut self){
+		self.hp_regen = self.base_hp_regen + (self.base_str + self.level as f32 * self.str_gain) * 0.03;
+	}
+
+	fn update_attack_damage(&mut self){
+		self.attack_damage = match self.hero_type{
+			t if t == HeroType::Strength => self.base_attack_damage + self.strength,
+			t if t == HeroType::Intelligence => self.base_attack_damage + self.intelligence,
+			_ => self.base_attack_damage + self.agility,
+		}
+	}
+
+	fn update_level(&mut self){
+		self.level = self.level;
 	}
 }
 
@@ -278,9 +347,20 @@ impl Farm for Hero{
 		let closest_friendly_creeps = &our_creeps.clone().into_iter().
 			filter(|&x| x.lane == lane).collect::<Vec<Creep>>();
 		let closest_towers = their_towers.clone().into_iter().filter(|&x| x.lane == lane).collect::<Vec<Tower>>();
-		let (dist_enemy, dist_friendly, dist_tower) = (self.position.distance_between(closest_enemy_creeps[0].position),
-			self.position.distance_between(closest_friendly_creeps[0].position),
-			self.position.distance_between(closest_towers[0].position));
+		// assume that if no creeps on map for that lane, they must  be far away when they spawn
+		//maybe bad behaviour
+		let dist_enemy = match closest_enemy_creeps.len(){
+			0 => 9001.,
+			_ => self.position.distance_between(closest_enemy_creeps[0].position)
+		};
+		let dist_friendly = match closest_friendly_creeps.len(){
+			0 => 9001.,
+			_ => self.position.distance_between(closest_friendly_creeps[0].position)
+		};
+		let dist_tower = match closest_towers.len(){
+			0 => 9001.,
+			_ => self.position.distance_between(closest_towers[0].position)
+		};
 		match (dist_friendly, dist_enemy, dist_tower){
 			(df, de, _) if df <= self.range && de <= self.range => self.attack_enemy_creeps(their_creeps),
 			(df, _, _) if df > self.range => self.move_towards_creeps(lane, &our_creeps),
@@ -350,27 +430,30 @@ pub trait Gank{
 
 impl Gank for Hero{
 	fn gank_lane(&mut self, lane: Lane, their_creeps: &mut Vec<Creep>, enemy_heroes: &mut [Hero; 5]){
-		let closest_enemy_creep = &their_creeps.clone().into_iter().
-			filter(|&x| x.lane == lane).collect::<Vec<Creep>>()[0];
-		let creep_diff = self.position.distance_between(closest_enemy_creep.position); // check creeps exist
-		let mut hero_diff = 9001.;
-		let mut closest_hero = None;
-		for hero in enemy_heroes.iter_mut(){
-			let distance = self.position.distance_between(hero.position);
-			if distance < hero_diff{
-				closest_hero = Some(hero);
-				hero_diff = distance;
+		let closest_enemy_creeps = &their_creeps.clone().into_iter().
+			filter(|&x| x.lane == lane).collect::<Vec<Creep>>();
+		if closest_enemy_creeps.len() > 0{
+			let closest_enemy_creep = closest_enemy_creeps[0];
+			let creep_diff = self.position.distance_between(closest_enemy_creep.position); // check creeps exist
+			let mut hero_diff = 9001.;
+			let mut closest_hero = None;
+			for hero in enemy_heroes.iter_mut(){
+				let distance = self.position.distance_between(hero.position);
+				if distance < hero_diff{
+					closest_hero = Some(hero);
+					hero_diff = distance;
+				}
 			}
-		}
-		match closest_hero{
-			Some(hero) =>{
-				match (creep_diff, hero_diff){
-					(cd, _) if cd > 50. => self.move_directly_to(&closest_enemy_creep.position),
-					(_, hd) if hd > self.range => self.move_directly_to(&hero.position),
-					_ => self.attack_hero(hero)
-				};
+			match closest_hero{
+				Some(hero) =>{
+					match (creep_diff, hero_diff){
+						(cd, _) if cd > 50. => self.move_directly_to(&closest_enemy_creep.position),
+						(_, hd) if hd > self.range => self.move_directly_to(&hero.position),
+						_ => self.attack_hero(hero)
+					};
+				}
+				None => {}
 			}
-			None => {}
 		}
 	}
 }
@@ -382,6 +465,37 @@ pub trait Follow{
 impl Follow for Hero{
 	fn follow_hero(&mut self, friend: &HeroInfo){//, priority: usize){
 		self.move_defensively_to(&friend.position);
+	}
+}
+
+pub trait Pull{
+	fn pull_easy(&mut self, &mut HashMap<&'static str, NeutralCamp>, side: Side);
+}
+
+impl Pull for Hero{
+	fn pull_easy(&mut self, camps: &mut HashMap<&'static str, NeutralCamp>, side: Side){
+		let mut easy_camp = camps.get_mut("easy_camp").unwrap();
+		if easy_camp.aggro_position.is_none(){
+			if self.position.distance_between(easy_camp.position) > self.range{
+				// so we need to not aggro the camp, until timing is right to pull to creeps
+				self.move_directly_to(&easy_camp.position);
+			}
+			else{
+				if easy_camp.position == easy_camp.home_position{
+					let pull_position = match side{
+						Side::Dire => Position{x: 176., y: 90.},
+						Side::Radiant => Position{x: 451., y: 537.}
+					};
+					easy_camp.aggro_position = Some(pull_position);
+				}
+			}
+		}
+		else{
+			match side{
+				Side::Dire => self.position.y -= 1.,
+				Side::Radiant => self.position.y += 1.,
+			}
+		};
 	}
 }
 /*pub trait GetDecision{

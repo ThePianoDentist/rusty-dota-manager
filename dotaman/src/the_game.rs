@@ -4,8 +4,10 @@ use std::collections::HashMap;
 use position::*;
 use anhero::*;
 use neutral_creeps::*;
+use hero_ai::*;
 
 pub const MAX_COORD: f32  = 600.0;
+pub const TIME_TO_TICK: u64 = 40;
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum Lane{
@@ -22,8 +24,9 @@ pub enum Side{
 
 pub struct Game {
 	pub game_tick: u64,
-	pub game_time: f32,
+	pub game_time: u64,
 	pub teams: [Team; 2],
+	pub xp_range: f32,
 	pub commentary_string: String,
 }
 
@@ -35,20 +38,26 @@ pub struct Team{
 	pub lane_creeps: Vec<Creep>,
 	pub heroes: [Hero; 5],
 	pub neutrals: HashMap<&'static str, NeutralCamp>,
+	pub current_decision: TeamAction,
+	pub decisions: HashMap<TeamAction, f32>,
+	pub should_change_decision: bool,
 }
 
 #[derive(Copy, Clone)]
 pub struct Creep {
 	pub lane: Lane,
-	pub hp: i32,
-	pub attack_damage: u32,
+	pub hp: f32,
+	pub attack_damage: f32,
 	pub melee_attack: bool,
 	pub attack_cooldown: f32,
 	pub attack_rate: f32,
 	pub position: Position,
 	pub velocity: Velocity,
+	pub move_speed: f32,
 	pub can_action: bool,
 	pub range: f32,
+
+	pub gold: f32, //un-used. but it means can use same function for heroes and creeps
 }
 
 // Buildings
@@ -56,30 +65,34 @@ pub struct Creep {
 pub struct Tower{
 	pub lane: Lane,
 	pub tier: u8,
-	pub max_hp: u32,
-	pub hp: i32,
-	pub attack_damage: u32,
+	pub max_hp: f32,
+	pub hp: f32,
+	pub attack_damage: f32,
 	pub attack_cooldown: f32,
 	pub attack_rate: f32,
 	pub can_action: bool,
 	pub position: Position,
 	pub range: f32,
+
+	pub gold: f32, //un-used. but it means can use same function for heroes and creeps and towers
 }
 
 pub struct Throne{
-	pub max_hp: u32,
-	pub hp: i32,
+	pub max_hp: f32,
+	pub hp: f32,
 	pub position: Position,
 }
 
 pub struct Fountain{
-	pub attack_damage: u32,
+	pub attack_damage: f32,
 	pub attack_cooldown: f32,
 	pub attack_rate: f32,
 	pub can_action: bool,
 	pub position: Position,
 	pub range: f32,
-	pub hp: i32 // temp hack to keep consistent with tower code
+	pub hp: f32, // temp hack to keep consistent with tower code
+
+	pub gold: f32, //un-used. but it means can use same function for heroes and creeps and towers
 }
 
 pub trait TimeTick {
@@ -135,6 +148,7 @@ impl ResetStuff for Game{
 pub trait AttackCreeps{
 	fn attack_enemy_creeps(&mut self, &mut Vec<Creep>);
 	fn attack_neutral(&mut self, neutral: &mut NeutralCamp);
+	fn attack_all_neutrals(&mut self, neutrals: &mut HashMap<&'static str, NeutralCamp>);
 }
 
 
@@ -147,7 +161,7 @@ macro_rules! impl_AttackCreeps {
 						self.attack_cooldown -= 1.;
 						self.can_action = false;
 						if self.attack_cooldown < 0.0{
-							creep.hp -= self.attack_damage as i32;
+							creep.hp -= self.attack_damage;
 							self.attack_cooldown += self.attack_rate;
 						}
 						break;
@@ -156,7 +170,24 @@ macro_rules! impl_AttackCreeps {
 			}
 
 			fn attack_neutral(&mut self, neutral: &mut NeutralCamp){
-				println!("not done yet");
+				self.hp -= neutral.attack_damage;
+				self.attack_cooldown -= 1.;
+				self.can_action = false;
+				if self.attack_cooldown < 0.0{
+					neutral.hp -= self.attack_damage;
+					if neutral.hp < 0.{
+						self.gold += 40.
+					}
+					self.attack_cooldown += self.attack_rate;
+				}
+			}
+
+			fn attack_all_neutrals(&mut self, neutrals: &mut HashMap<&'static str, NeutralCamp>){
+				for (camp_name, mut camp) in neutrals{
+					if self.position.distance_between(camp.position) <= self.range{
+						self.attack_neutral(&mut camp);
+					}
+				}
 			}
 		}
 	}
@@ -221,7 +252,7 @@ macro_rules! impl_AttackBuilding {
 						self.can_action = false;
 						self.attack_cooldown -= 1.;
 						if self.attack_cooldown < 0.0{
-							tower.hp -= self.attack_damage as i32;
+							tower.hp -= self.attack_damage;
 							self.attack_cooldown += self.attack_rate;
 						}
 						break;
@@ -234,7 +265,7 @@ macro_rules! impl_AttackBuilding {
 					self.can_action = false;
 					self.attack_cooldown -= 1.;
 					if self.attack_cooldown < 0.0{
-						throne.hp -= self.attack_damage as i32;
+						throne.hp -= self.attack_damage;
 						self.attack_cooldown += self.attack_rate;
 					}
 				};
@@ -254,8 +285,8 @@ macro_rules! impl_Travel{
 	{
 		impl Travel for $T{  // do handling to keep in bounds here
 			fn travel(&mut self){
-				self.position.y += self.velocity.y;
-				self.position.x += self.velocity.x;
+				self.position.y += self.move_speed * (6. / (150. * TIME_TO_TICK as f32)) * self.velocity.y;
+				self.position.x += self.move_speed * (6. / (150. * TIME_TO_TICK as f32)) * self.velocity.x;
 			}
 		}
 	}
@@ -267,8 +298,8 @@ impl_Travel!(Creep);
 pub trait MoveDownLane{
 	fn move_top_creep_radiant(&mut self);
 	fn move_mid_creep_radiant(&mut self);
-	fn move_bot_creep_radiant(&mut self);
-	fn move_top_creep_dire(&mut self);
+	fn move_bot_creep_radiant(&mut self, easy_camp: &NeutralCamp);
+	fn move_top_creep_dire(&mut self, easy_camp: &NeutralCamp);
 	fn move_mid_creep_dire(&mut self);
 	fn move_bot_creep_dire(&mut self);
 }
@@ -285,11 +316,17 @@ impl MoveDownLane for Creep{
 		self.travel();
 	}
 
-	fn move_bot_creep_radiant(&mut self){
+	fn move_bot_creep_radiant(&mut self, easy_camp: &NeutralCamp){
 		self.travel();
-		if self.position.small_random_pos_offset().x > MAX_COORD *(7.0/8.0){
-			self.velocity = Velocity{x: 0., y: -1.};
-		}
+
+		// check if should follow pull
+		let ez_dist = self.position.distance_between(easy_camp.position);
+		let to_camp_velocity = self.position.velocity_to(easy_camp.position);
+		self.velocity = match (ez_dist, self.position.small_random_pos_offset().x){
+			(a, _) if a < 30. => to_camp_velocity,
+			(_, b) if b > MAX_COORD *(7.0/8.0) => Velocity{x: 0.0, y: -1.0},
+			_ => Velocity{x: 1., y: 0.}
+		};
 	}
 
 	fn move_mid_creep_dire(&mut self){
@@ -303,11 +340,17 @@ impl MoveDownLane for Creep{
 		}
 	}
 
-	fn move_top_creep_dire(&mut self){
+	fn move_top_creep_dire(&mut self, easy_camp: &NeutralCamp){
 		self.travel();
-		if self.position.x < MAX_COORD / 8.0{
-			self.velocity = Velocity{x: 0.0, y: 1.0};
-		}
+
+		// check if should follow pull
+		let ez_dist = self.position.distance_between(easy_camp.position);
+		let to_camp_velocity = self.position.velocity_to(easy_camp.position);
+		self.velocity = match (ez_dist, self.position.small_random_pos_offset().x){
+			(a, _) if a < 30. => to_camp_velocity,
+			(_, b) if b < MAX_COORD / 8.0 => Velocity{x: 0.0, y: 1.0},
+			_ => Velocity{x: -1.0, y: 0.}
+		};
 	}
 }
 
@@ -318,22 +361,24 @@ pub trait MoveCreeps{
 
 impl MoveCreeps for Team{
 	fn move_creeps_radiant(&mut self){
+		let easy_camp = self.neutrals.get("easy_camp").unwrap();
 		for lane_creep in &mut self.lane_creeps{
 			if lane_creep.can_action{
 				match lane_creep.lane{
 					Lane::Top => lane_creep.move_top_creep_radiant(),
 					Lane::Mid => lane_creep.move_mid_creep_radiant(),
-					Lane::Bot => lane_creep.move_bot_creep_radiant(),
+					Lane::Bot => lane_creep.move_bot_creep_radiant(easy_camp),
 				};
 			}
 		}
 	}
 
 	fn move_creeps_dire(&mut self){
+		let easy_camp = self.neutrals.get("easy_camp").unwrap();
 		for lane_creep in &mut self.lane_creeps{
 			if lane_creep.can_action{
 				match lane_creep.lane{
-					Lane::Top => lane_creep.move_top_creep_dire(),
+					Lane::Top => lane_creep.move_top_creep_dire(easy_camp),
 					Lane::Mid => lane_creep.move_mid_creep_dire(),
 					Lane::Bot => lane_creep.move_bot_creep_dire(),
 				};
@@ -343,8 +388,10 @@ impl MoveCreeps for Team{
 }
 
 pub trait KillOff{
+	// this is kind of stupid because i have to loop in every function. should loop outside func maybe?
 	fn kill_off_creeps(&mut self);
 	fn kill_off_heroes(&mut self);
+	fn kill_off_towers(&mut self);
 }
 
 impl KillOff for Game{
@@ -356,22 +403,22 @@ impl KillOff for Game{
 				_ => (&mut dire[0], &mut rad[0])
 			};
 			for creep in &mut us.lane_creeps{
-				if creep.hp < 0{
+				if creep.hp < 0.{
 					let mut heroes_in_xp_range = 0;
 					for hero in &them.heroes{
-						if hero.position.distance_between(creep.position) <= 200.{
+						if hero.position.distance_between(creep.position) <= self.xp_range{
 							heroes_in_xp_range += 1;
 						}
 					};
 					for hero in &mut them.heroes{
-						if hero.position.distance_between(creep.position) <= 200.{
+						if hero.position.distance_between(creep.position) <= self.xp_range{
 							hero.xp += 50. / heroes_in_xp_range as f32;
 						}
 					}
 					// I dont think its safe/wise to do the delete in the loop. so just loop again down below?
 				}
 			}
-			us.lane_creeps.retain(|&i| i.hp > 0);
+			us.lane_creeps.retain(|&i| i.hp > 0.);
 		};
 	}
 
@@ -393,6 +440,24 @@ impl KillOff for Game{
 				}
 			}
 		};
+	}
+
+	fn kill_off_towers(&mut self){
+		for i in 0..2{
+			let (rad, dire) = self.teams.split_at_mut(1);
+			let (mut us, mut them) = match i{
+				0 => (&mut rad[0], &mut dire[0]),
+				_ => (&mut dire[0], &mut rad[0])
+			};
+			for tower in &mut us.towers{
+				if tower.hp <= 0.{
+					for hero in &mut them.heroes{
+						hero.gold += 200.// will also need gold for last hit on tower
+					}
+				}
+			}
+			us.towers.retain(|&i| i.hp > 0.);
+		}
 	}
 }
 

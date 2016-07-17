@@ -47,6 +47,7 @@ pub trait CoordManipulation{
 	fn update_y(&mut self, f32);
 	fn add_x(&mut self, f32);
 	fn add_y(&mut self, f32);
+	fn 	velocity_to(&mut self, towards: Position) -> Velocity;
 }
 
 impl CoordManipulation for Position{
@@ -88,6 +89,10 @@ impl CoordManipulation for Position{
 
 	fn add_y(&mut self, add: f32){
 		self.y += add;
+	}
+
+	fn velocity_to(&mut self, towards: Position) -> Velocity{
+		Velocity{x: towards.x - self.x, y: towards.y - self.y}
 	}
 }
 
