@@ -486,6 +486,8 @@ fn main() {
         commentary_string: "Navi vs Alliance".to_string()
 	};
 
+    //let game_snapshot = game.clone();
+
 	'outer: loop {
 		if game.game_tick % 280 == 0 || game.game_tick == 0{
 			for _ in 1..5{
