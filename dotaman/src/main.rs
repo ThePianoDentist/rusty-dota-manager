@@ -259,25 +259,26 @@ fn main() {
         }
     }
 
-
+    // have only done stats for t1
 	let tower = Tower{
 			lane: Lane::Mid,
 			tier: 1,
-			max_hp: 200.,
-			hp: 200.,
-			attack_damage: 30.,
+			max_hp: 1300.,
+			hp: 1300.,
+			attack_damage: 110.,  // 100-120
 			can_action: true,
-			attack_cooldown: 3.0,
-			attack_rate: 3.0,
+			attack_cooldown: 1.0 * TIME_TO_TICK as f32,
+			attack_rate: 1.0 * TIME_TO_TICK as f32,
 			range: 30.,
+            armour: 20.,
 			position: Position{x: (MAX_COORD/2.),
 				y: (MAX_COORD/2.),
 				},
             gold: 0.
 		};
 	let t2_dire_pos = Position{x: (MAX_COORD/2.) + (MAX_COORD/8.), y: (MAX_COORD/2.) - (MAX_COORD/8.)};
-	let t2_dire_tower = Tower{tier: 2, max_hp: 300., hp: 300., position: t2_dire_pos, .. tower};
-	let t3_dire_tower = Tower{tier: 3, max_hp: 400., hp: 400.,
+	let t2_dire_tower = Tower{tier: 2, position: t2_dire_pos, .. tower};
+	let t3_dire_tower = Tower{tier: 3,
 		 position: Position{x: (MAX_COORD/2.) + (MAX_COORD/4.), y: (MAX_COORD/2.) - (MAX_COORD/4.)}, .. tower};
 
 	let t1_rad_tower = Tower{
@@ -494,10 +495,11 @@ fn main() {
 						};
 				let new_radiant_top_creep = Creep{
 					lane: Lane::Top,
-					hp: 150.,
-					attack_damage: 5.,
-					attack_cooldown: 1.6,
-					attack_rate: 1.6,
+					hp: 550.,
+                    armour: 2.,
+					attack_damage: 20., //19-23
+					attack_cooldown: 1. * TIME_TO_TICK as f32,
+					attack_rate: 1. * TIME_TO_TICK as f32,
 					melee_attack: true,
 					can_action: true,
 					velocity: Velocity{x: 0., y: -1.},
@@ -511,7 +513,7 @@ fn main() {
 				let new_radiant_mid_creep = Creep{lane: Lane::Mid, position: position.small_random_pos_offset(),
 					velocity: Velocity{x: 1., y: -1.}, .. new_radiant_top_creep};
 				let new_dire_top_creep = Creep{position: position.swap_x_y().small_random_pos_offset(),
-					 attack_damage: 3., velocity: Velocity{x: -1., y: 0.}, .. new_radiant_top_creep};
+					 attack_damage: 19., velocity: Velocity{x: -1., y: 0.}, .. new_radiant_top_creep};
 				let new_dire_bot_creep = Creep{lane: Lane::Bot, position: position.swap_x_y().small_random_pos_offset(),
 					velocity: Velocity{x: 0., y: 1.}, .. new_dire_top_creep};
 				let new_dire_mid_creep = Creep{lane: Lane::Mid, position: position.swap_x_y().small_random_pos_offset(),

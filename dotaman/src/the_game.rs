@@ -56,6 +56,7 @@ pub struct Creep {
 	pub move_speed: f32,
 	pub can_action: bool,
 	pub range: f32,
+	pub armour: f32,
 
 	pub gold: f32, //un-used. but it means can use same function for heroes and creeps
 }
@@ -73,6 +74,7 @@ pub struct Tower{
 	pub can_action: bool,
 	pub position: Position,
 	pub range: f32,
+	pub armour: f32,
 
 	pub gold: f32, //un-used. but it means can use same function for heroes and creeps and towers
 }
@@ -412,7 +414,7 @@ impl KillOff for Game{
 					};
 					for hero in &mut them.heroes{
 						if hero.position.distance_between(creep.position) <= self.xp_range{
-							hero.xp += 50. / heroes_in_xp_range as f32;
+							hero.xp += 45. / heroes_in_xp_range as f32;
 						}
 					}
 					// I dont think its safe/wise to do the delete in the loop. so just loop again down below?

@@ -67,13 +67,16 @@ pub trait TeamDecisions{
     fn should_change_team_decision(&mut self, game_time: u64) -> bool;
     fn change_team_decision(&mut self);
     fn five_man_top(&mut self);
+    fn five_man_lane(&mut self, Lane);
     fn update_decision_prob(&mut self, update_action: TeamAction, new_prob: f32);
 }
 
 impl TeamDecisions for Team{
     fn process_team_decision(&mut self){
         match self.current_decision{
-            TeamAction::FiveManTop => self.five_man_top(),
+            TeamAction::FiveManTop => self.five_man_lane(Lane::Top),
+            TeamAction::FiveManBot => self.five_man_lane(Lane::Bot),
+            TeamAction::FiveManMid => self.five_man_lane(Lane::Mid),
             _ => self.five_man_top()
         }
     }
@@ -81,7 +84,12 @@ impl TeamDecisions for Team{
     fn should_change_team_decision(&mut self, game_time: u64) -> bool{
         //abadnon laning
         if game_time == 70{
+            if self.side == Side::Radiant{
             self.update_decision_prob(TeamAction::FiveManTop, 1.0);
+            }
+            else{
+                self.update_decision_prob(TeamAction::FiveManMid, 1.0);
+            }
             true
         }
         else{
@@ -111,6 +119,22 @@ impl TeamDecisions for Team{
                 3 => hero.update_decision_prob(Action::FarmTopLane, 1.),
                 2 => hero.update_decision_prob(Action::FarmTopLane, 1.),
                 _ => hero.update_decision_prob(Action::FarmTopLane, 1.),
+            }
+        }
+    }
+
+    fn five_man_lane(&mut self, lane: Lane){
+        let action = match lane{
+            Lane::Top => Action::FarmTopLane,
+            Lane::Mid => Action::FarmMidLane,
+            Lane::Bot => Action::FarmBotLane,
+        };
+        for hero in self.heroes.iter_mut(){
+            match hero.priority{
+                4 | 5 => hero.update_decision_prob(action, 1.),
+                3 => hero.update_decision_prob(action, 1.),
+                2 => hero.update_decision_prob(action, 1.),
+                _ => hero.update_decision_prob(action, 1.),
             }
         }
     }
