@@ -267,7 +267,7 @@ fn main() {
 			hp: 1300.,
 			attack_damage: 110.,  // 100-120
 			can_action: true,
-			attack_cooldown: 1.0 * TIME_TO_TICK as f32,
+			attack_cooldown: 1.0 * TIME_TO_TICK as f32,  // need to decouple this so can be dynamic
 			attack_rate: 1.0 * TIME_TO_TICK as f32,
 			range: 30.,
             armour: 20.,
@@ -481,6 +481,7 @@ fn main() {
 	let mut game = Game{
 		game_tick: 0,
 		game_time: 0,
+        time_to_tick: 40,
 		teams: [radiant, dire],
         xp_range: 200.,
         commentary_string: "Navi vs Alliance".to_string()
@@ -500,8 +501,8 @@ fn main() {
 					hp: 550.,
                     armour: 2.,
 					attack_damage: 20., //19-23
-					attack_cooldown: 1. * TIME_TO_TICK as f32,
-					attack_rate: 1. * TIME_TO_TICK as f32,
+					attack_cooldown: 1. * game.time_to_tick as f32,
+					attack_rate: 1. * game.time_to_tick as f32,
 					melee_attack: true,
 					can_action: true,
 					velocity: Velocity{x: 0., y: -1.},
@@ -560,7 +561,7 @@ fn main() {
 
             for (name, camp) in &mut us.neutrals{
                 if name.to_string() == "easy_camp"{
-                    camp.chase_aggro();
+                    camp.chase_aggro(&game.time_to_tick);
                 }
             }
 
@@ -595,8 +596,8 @@ fn main() {
         if game.game_time % 60 == 0{
             game.respawn_neutrals();
         }
-		game.teams[0].move_creeps_radiant();
-		game.teams[1].move_creeps_dire();
+		game.teams[0].move_creeps_radiant(&game.time_to_tick);
+		game.teams[1].move_creeps_dire(&game.time_to_tick);
 
 		while let Some(e) = events.next(&mut app.window) {
 			if let Some(r) = e.render_args() {
@@ -615,7 +616,7 @@ fn main() {
 			}
 		};
 		game.game_tick += 1;
-        if game.game_tick % TIME_TO_TICK == 0{
+        if game.game_tick % game.time_to_tick == 0{
             game.game_time += 1
         };
         game.commentary_string = match game.game_tick{

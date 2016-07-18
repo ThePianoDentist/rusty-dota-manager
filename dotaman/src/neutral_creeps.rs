@@ -27,8 +27,8 @@ impl_Travel!(NeutralCamp);
 
 pub trait JustDoingWatNeutralsDo{
     fn respawn(&mut self);
-    fn move_directly_to(&mut self, &Position);
-    fn chase_aggro(&mut self);
+    fn move_directly_to(&mut self, &Position, time_to_tick: &u64);
+    fn chase_aggro(&mut self, time_to_tick: &u64);
 
 }
 
@@ -41,7 +41,7 @@ impl JustDoingWatNeutralsDo for NeutralCamp{
         };
     }
 
-    fn move_directly_to(&mut self, position: &Position){
+    fn move_directly_to(&mut self, position: &Position, time_to_tick: &u64){
 		let (x_diff, y_diff) = (self.position.x - position.x,
 								self.position.y - position.y);
 
@@ -57,10 +57,10 @@ impl JustDoingWatNeutralsDo for NeutralCamp{
 			_ => 0. // must be 0, in line with
 		};
 
-        self.travel();
+        self.travel(time_to_tick);
 	}
 
-    fn chase_aggro(&mut self){
+    fn chase_aggro(&mut self, time_to_tick: &u64){
         // because of floating point co-ords, calculations mean they dont exactly match
         if self.aggro_position.is_some() && self.position.distance_between(self.aggro_position.unwrap()) < 2.{
             self.aggro_position = None;
@@ -69,10 +69,10 @@ impl JustDoingWatNeutralsDo for NeutralCamp{
         let aggro_pos = self.aggro_position;
         let creeps_house = self.home_position;
         if aggro_pos.is_some(){
-            self.move_directly_to(&aggro_pos.unwrap());
+            self.move_directly_to(&aggro_pos.unwrap(), time_to_tick);
         }
         else{
-            self.move_directly_to(&creeps_house);
+            self.move_directly_to(&creeps_house, time_to_tick);
         }
     }
 }

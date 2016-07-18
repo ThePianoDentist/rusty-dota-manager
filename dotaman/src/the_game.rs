@@ -28,6 +28,7 @@ pub struct Game {
 	pub teams: [Team; 2],
 	pub xp_range: f32,
 	pub commentary_string: String,
+	pub time_to_tick: u64,
 }
 
 pub struct Team{
@@ -279,16 +280,16 @@ macro_rules! impl_AttackBuilding {
 impl_AttackBuilding!(Creep);
 
 pub trait Travel{
-	fn travel(&mut self);
+	fn travel(&mut self, time_to_tick: &u64);
 }
 
 macro_rules! impl_Travel{
 	($T:ident) =>
 	{
 		impl Travel for $T{  // do handling to keep in bounds here
-			fn travel(&mut self){
-				self.position.y += self.move_speed * (6. / (150. * TIME_TO_TICK as f32)) * self.velocity.y;
-				self.position.x += self.move_speed * (6. / (150. * TIME_TO_TICK as f32)) * self.velocity.x;
+			fn travel(&mut self, time_to_tick: &u64){
+				self.position.y += self.move_speed * (6. / (150. * *time_to_tick as f32)) * self.velocity.y;
+				self.position.x += self.move_speed * (6. / (150. * *time_to_tick as f32)) * self.velocity.x;
 			}
 		}
 	}
@@ -298,28 +299,28 @@ impl_Travel!(Hero);
 impl_Travel!(Creep);
 
 pub trait MoveDownLane{
-	fn move_top_creep_radiant(&mut self);
-	fn move_mid_creep_radiant(&mut self);
-	fn move_bot_creep_radiant(&mut self, easy_camp: &NeutralCamp);
-	fn move_top_creep_dire(&mut self, easy_camp: &NeutralCamp);
-	fn move_mid_creep_dire(&mut self);
-	fn move_bot_creep_dire(&mut self);
+	fn move_top_creep_radiant(&mut self, time_to_tick: &u64);
+	fn move_mid_creep_radiant(&mut self, time_to_tick: &u64);
+	fn move_bot_creep_radiant(&mut self, easy_camp: &NeutralCamp, time_to_tick: &u64);
+	fn move_top_creep_dire(&mut self, easy_camp: &NeutralCamp, time_to_tick: &u64);
+	fn move_mid_creep_dire(&mut self, time_to_tick: &u64);
+	fn move_bot_creep_dire(&mut self, time_to_tick: &u64);
 }
 
 impl MoveDownLane for Creep{
-	fn move_top_creep_radiant(&mut self){
-		self.travel();
+	fn move_top_creep_radiant(&mut self, time_to_tick: &u64){
+		self.travel(time_to_tick);
 		if self.position.small_random_pos_offset().y < (MAX_COORD / 8.){
 			self.velocity = Velocity{x: 1., y: 0.};
 		}
 	}
 
-	fn move_mid_creep_radiant(&mut self){
-		self.travel();
+	fn move_mid_creep_radiant(&mut self, time_to_tick: &u64){
+		self.travel(time_to_tick);
 	}
 
-	fn move_bot_creep_radiant(&mut self, easy_camp: &NeutralCamp){
-		self.travel();
+	fn move_bot_creep_radiant(&mut self, easy_camp: &NeutralCamp, time_to_tick: &u64){
+		self.travel(time_to_tick);
 
 		// check if should follow pull
 		let ez_dist = self.position.distance_between(easy_camp.position);
@@ -331,19 +332,19 @@ impl MoveDownLane for Creep{
 		};
 	}
 
-	fn move_mid_creep_dire(&mut self){
-		self.travel();
+	fn move_mid_creep_dire(&mut self, time_to_tick: &u64){
+		self.travel(time_to_tick);
 	}
 
-	fn move_bot_creep_dire(&mut self){
-		self.travel();
+	fn move_bot_creep_dire(&mut self, time_to_tick: &u64){
+		self.travel(time_to_tick);
 		if self.position.y > MAX_COORD *(7.0/8.0){
 			self.velocity = Velocity{x: -1.0, y: 0.0};
 		}
 	}
 
-	fn move_top_creep_dire(&mut self, easy_camp: &NeutralCamp){
-		self.travel();
+	fn move_top_creep_dire(&mut self, easy_camp: &NeutralCamp, time_to_tick: &u64){
+		self.travel(time_to_tick);
 
 		// check if should follow pull
 		let ez_dist = self.position.distance_between(easy_camp.position);
@@ -357,32 +358,32 @@ impl MoveDownLane for Creep{
 }
 
 pub trait MoveCreeps{
-	fn move_creeps_radiant(&mut self);
-	fn move_creeps_dire(&mut self);
+	fn move_creeps_radiant(&mut self, time_to_tick: &u64);
+	fn move_creeps_dire(&mut self, time_to_tick: &u64);
 }
 
 impl MoveCreeps for Team{
-	fn move_creeps_radiant(&mut self){
+	fn move_creeps_radiant(&mut self, time_to_tick: &u64){
 		let easy_camp = self.neutrals.get("easy_camp").unwrap();
 		for lane_creep in &mut self.lane_creeps{
 			if lane_creep.can_action{
 				match lane_creep.lane{
-					Lane::Top => lane_creep.move_top_creep_radiant(),
-					Lane::Mid => lane_creep.move_mid_creep_radiant(),
-					Lane::Bot => lane_creep.move_bot_creep_radiant(easy_camp),
+					Lane::Top => lane_creep.move_top_creep_radiant(time_to_tick),
+					Lane::Mid => lane_creep.move_mid_creep_radiant(time_to_tick),
+					Lane::Bot => lane_creep.move_bot_creep_radiant(easy_camp, time_to_tick),
 				};
 			}
 		}
 	}
 
-	fn move_creeps_dire(&mut self){
+	fn move_creeps_dire(&mut self, time_to_tick: &u64){
 		let easy_camp = self.neutrals.get("easy_camp").unwrap();
 		for lane_creep in &mut self.lane_creeps{
 			if lane_creep.can_action{
 				match lane_creep.lane{
-					Lane::Top => lane_creep.move_top_creep_dire(easy_camp),
-					Lane::Mid => lane_creep.move_mid_creep_dire(),
-					Lane::Bot => lane_creep.move_bot_creep_dire(),
+					Lane::Top => lane_creep.move_top_creep_dire(easy_camp, time_to_tick),
+					Lane::Mid => lane_creep.move_mid_creep_dire(time_to_tick),
+					Lane::Bot => lane_creep.move_bot_creep_dire(time_to_tick),
 				};
 			}
 		}
