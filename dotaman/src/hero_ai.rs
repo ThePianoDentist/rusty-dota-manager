@@ -47,7 +47,9 @@ pub enum Action{
 pub enum TeamAction{
     GreedyFarmAllLanesSupportsDefensive,
     GreedyFarmAllLanesSupportsGanking,
-    DefendTowerFive,
+    DefendTopTowerFive,
+    DefendMidTowerFive,
+    DefendBotTowerFive,
     DefendTowerFour,
     FiveManTop,
     FiveManBot,
@@ -66,9 +68,12 @@ pub trait TeamDecisions{
     fn process_team_decision(&mut self);
     fn should_change_team_decision(&mut self, game_time: u64) -> bool;
     fn change_team_decision(&mut self);
-    fn five_man_top(&mut self);
+    fn greedy_farming(&mut self);
+    fn greedy_farm_sup_gank(&mut self);
     fn five_man_lane(&mut self, Lane);
+    fn five_man_def(&mut self, Lane);
     fn update_decision_prob(&mut self, update_action: TeamAction, new_prob: f32);
+    fn update_multi_decisions_prob(&mut self, updates: Vec<(TeamAction, f32)>);
 }
 
 impl TeamDecisions for Team{
@@ -77,7 +82,22 @@ impl TeamDecisions for Team{
             TeamAction::FiveManTop => self.five_man_lane(Lane::Top),
             TeamAction::FiveManBot => self.five_man_lane(Lane::Bot),
             TeamAction::FiveManMid => self.five_man_lane(Lane::Mid),
-            _ => self.five_man_top()
+            TeamAction::GreedyFarmAllLanesSupportsDefensive => self.greedy_farming(),
+            TeamAction::GreedyFarmAllLanesSupportsGanking => self.greedy_farm_sup_gank(),
+            TeamAction::DefendTopTowerFive => self.five_man_def(Lane::Top),
+            TeamAction::DefendMidTowerFive => self.five_man_def(Lane::Mid),
+            TeamAction::DefendBotTowerFive => self.five_man_def(Lane::Bot),
+            /*
+            TeamAction::DefendTowerFour,
+            TeamAction::FourManAttackTower,
+            TeamAction::GankEnemyJungle,
+            TeamAction::StandardLaning,
+            TeamAction::AggroLaning,
+            TeamAction::DualLaningOff,
+            TeamAction::DualLaningMid,
+            TeamAction::Roshing,
+            TeamAction::IndividualChoice,*/
+            _ => self.five_man_lane(Lane::Top)
         }
     }
 
@@ -103,7 +123,6 @@ impl TeamDecisions for Team{
 
     fn update_decision_prob(&mut self, update_action: TeamAction, new_prob: f32){
         let old_prob = self.decisions.get(&update_action).unwrap().clone(); // is this the right place to use clone?
-        let decision_count = self.decisions.len().clone();
         for (action, prob) in self.decisions.iter_mut(){
             *prob = match *action{
                 a if a == update_action => new_prob,
@@ -112,15 +131,51 @@ impl TeamDecisions for Team{
         }
     }
 
-    fn five_man_top(&mut self){
-        for hero in self.heroes.iter_mut(){
-            match hero.priority{
-                4 | 5 => hero.update_decision_prob(Action::FarmTopLane, 1.),
-                3 => hero.update_decision_prob(Action::FarmTopLane, 1.),
-                2 => hero.update_decision_prob(Action::FarmTopLane, 1.),
-                _ => hero.update_decision_prob(Action::FarmTopLane, 1.),
+    fn update_multi_decisions_prob(&mut self, updates: Vec<(TeamAction, f32)>){
+        let mut total_new_prob = 0.;
+        for (_, new_prob) in updates.clone(){
+            total_new_prob += new_prob;
+        }
+
+        for (update_action, new_prob) in updates{
+            let old_prob = self.decisions.get(&update_action).unwrap().clone(); // is this the right place to use clone?
+            for (action, prob) in self.decisions.iter_mut(){
+                *prob = match *action{
+                    a if a == update_action => new_prob,
+                    _ => *prob * (1. - (total_new_prob + old_prob))  // scale all the other probabilites
+                };
             }
         }
+    }
+
+    fn greedy_farming(&mut self){
+        let (farm_safelane, farm_offlane) = self.actionfarm_safelane_offlane();
+
+        for hero in self.heroes.iter_mut(){
+            match hero.priority{
+                4 | 5 => {hero.update_decision_prob(Action::FollowHeroOne, 0.5); // hmmm this doesnt make 5050 chance. as existing probs are just diluted
+                          hero.update_decision_prob(Action::FollowHeroTwo, 0.5) // need method for updating multiple probs at once
+                         },
+                3 => hero.update_decision_prob(farm_offlane, 1.),
+                2 => hero.update_decision_prob(Action::FarmMidLane, 1.),
+                _ => hero.update_decision_prob(farm_safelane, 1.),
+            }
+        }
+    }
+
+    fn greedy_farm_sup_gank(&mut self){
+        let (farm_safelane, farm_offlane) = self.actionfarm_safelane_offlane();
+        for hero in self.heroes.iter_mut(){
+            match hero.priority{
+                4 | 5 => {hero.update_decision_prob(Action::GankMid, 0.5); // hmmm this doesnt make 5050 chance. as existing probs are just diluted
+                          hero.update_decision_prob(Action::GankBot, 0.5) // need method for updating multiple probs at once
+                         },
+                3 => hero.update_decision_prob(farm_offlane, 1.),
+                2 => hero.update_decision_prob(Action::FarmMidLane, 1.),
+                _ => hero.update_decision_prob(farm_safelane, 1.),
+            }
+        }
+
     }
 
     fn five_man_lane(&mut self, lane: Lane){
@@ -136,6 +191,17 @@ impl TeamDecisions for Team{
                 2 => hero.update_decision_prob(action, 1.),
                 _ => hero.update_decision_prob(action, 1.),
             }
+        }
+    }
+
+    fn five_man_def(&mut self, lane: Lane){
+        let action = match lane{
+            Lane::Top => Action::DefendTopTower,
+            Lane::Mid => Action::DefendMidTower,
+            Lane::Bot => Action::DefendBotTower,
+        };
+        for hero in self.heroes.iter_mut(){
+            hero.update_decision_prob(action, 1.);
         }
     }
 }
@@ -243,10 +309,7 @@ impl Decisions for Hero{
 
     fn check_if_should_heal(&mut self) -> bool{
         if self.hp < self.max_hp / 3. && self.current_decision != Action::MoveToFountain{
-            for (action, prob) in self.decisions.iter_mut(){
-                *prob = 0.;
-            }
-            *self.decisions.get_mut(&Action::MoveToFountain).unwrap() = 1.;
+            self.update_decision_prob(Action::MoveToFountain, 1.0);
             true
         }
         else{false}

@@ -317,7 +317,7 @@ fn main() {
 	let dire_throne = Throne{position: radiant_throne.position.swap_x_y(), .. radiant_throne};
 
     //Hmmm cant iterate over enums on stable
-    let mut decisions: HashMap<Action, f32> = hashmap!(
+    let decisions: HashMap<Action, f32> = hashmap!(
         FarmBotLane => 0.,
         FarmMidLane => 0. ,
         FarmTopLane => 0.,
@@ -423,7 +423,7 @@ fn main() {
     let radiant_easy_neutrals = NeutralCamp{position: Position{x: 417., y: 484.}, home_position: Position{x: 417., y: 484.}, max_gold: 50, max_hp:150., hp: 150., .. radiant_hard_neutrals_1};
     let radiant_ancient_neutrals = NeutralCamp{position: Position{x: 183., y: 305.}, home_position: Position{x: 183., y: 305.}, max_gold: 150, max_hp: 250., hp: 350., .. radiant_medium_neutrals_1};
 
-    let mut radiant_neutrals = hashmap!(
+    let radiant_neutrals = hashmap!(
         "hard_camp_1" => radiant_hard_neutrals_1,
         "hard_camp_2" => radiant_hard_neutrals_2,
         "medium_camp_1" => radiant_medium_neutrals_1,
@@ -432,7 +432,7 @@ fn main() {
         "ancient_camp" => radiant_ancient_neutrals
     );
 
-    let mut dire_neutrals = hashmap!(
+    let dire_neutrals = hashmap!(
         "hard_camp_1" => dire_hard_neutrals_1,
         "hard_camp_2" => dire_hard_neutrals_2,
         "medium_camp_1" => dire_medium_neutrals_1,
@@ -441,11 +441,13 @@ fn main() {
         "ancient_camp" => dire_ancient_neutrals
     );
 
-    let mut team_decisions = hashmap!(
+    let team_decisions = hashmap!(
         TeamAction::IndividualChoice => 0.,
         GreedyFarmAllLanesSupportsDefensive => 0.,
         GreedyFarmAllLanesSupportsGanking => 0.,
-        DefendTowerFive => 0.,
+        DefendTopTowerFive => 0.,
+        DefendMidTowerFive => 0.,
+        DefendBotTowerFive => 0.,
         DefendTowerFour => 0.,
         FiveManTop => 0.,
         FiveManBot => 0.,
@@ -501,7 +503,7 @@ fn main() {
 					hp: 550.,
                     armour: 2.,
 					attack_damage: 20., //19-23
-					attack_cooldown: 1. * game.time_to_tick as f32,
+					attack_cooldown: 1. * game.time_to_tick as f32,  // this is wrong. is a bug if change speed after creating creep. needs to be applied when attack happens
 					attack_rate: 1. * game.time_to_tick as f32,
 					melee_attack: true,
 					can_action: true,

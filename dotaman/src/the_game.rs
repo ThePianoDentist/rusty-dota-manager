@@ -457,6 +457,9 @@ impl KillOff for Game{
 					for hero in &mut them.heroes{
 						hero.gold += 200.// will also need gold for last hit on tower
 					}
+					// if tower died change team decisions
+					them.update_decision_prob(TeamAction::GreedyFarmAllLanesSupportsDefensive, 1.);
+					them.should_change_decision = true;
 				}
 			}
 			us.towers.retain(|&i| i.hp > 0.);
@@ -475,5 +478,34 @@ impl GetHeroInfo for Team{
 			other_heroes.push(hero.hero_to_hero_info())
 		}
 		other_heroes
+	}
+}
+
+pub trait SafeOffLane{
+	fn safelane(&mut self) -> Lane;
+	fn offlane(&mut self) -> Lane;
+	fn actionfarm_safelane_offlane(&mut self) -> (Action, Action);
+}
+
+impl SafeOffLane for Team{
+	fn safelane(&mut self) -> Lane{
+		match self.side{
+			Side::Radiant => Lane::Bot,
+			Side::Dire => Lane::Top
+		}
+	}
+
+	fn offlane(&mut self) -> Lane{
+		match self.side{
+			Side::Radiant => Lane::Top,
+			Side::Dire => Lane::Bot
+		}
+	}
+
+	fn actionfarm_safelane_offlane(&mut self) -> (Action, Action){
+		match self.side{
+			Side::Radiant => (Action::FarmBotLane, Action::FarmTopLane),
+			Side::Dire => (Action::FarmTopLane, Action::FarmBotLane)
+		}
 	}
 }
