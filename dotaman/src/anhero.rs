@@ -459,12 +459,26 @@ impl Gank for Hero{
 }
 
 pub trait Follow{
-	fn follow_hero(&mut self, &HeroInfo);//, usize);
+	fn follow_hero(&mut self, &HeroInfo, enemy_heroes: &mut [Hero; 5]);
 }
 
 impl Follow for Hero{
-	fn follow_hero(&mut self, friend: &HeroInfo){//, priority: usize){
-		self.move_defensively_to(&friend.position);
+	fn follow_hero(&mut self, friend: &HeroInfo, enemy_heroes: &mut [Hero; 5]){
+		let mut lowest_distance: f32 = 9001.;
+		for hero in enemy_heroes.iter_mut(){
+			let distance_to = self.position.distance_between(hero.position);
+			if distance_to < lowest_distance{
+				match self.position.distance_between(hero.position){
+					x if x < self.range => self.attack_hero(hero),
+					x if x < 80. => self.move_directly_to(&hero.position), // maybe make this dynamic?
+					_ => {}
+				}
+				lowest_distance = distance_to;
+			}
+		}
+		if lowest_distance == 9001.{ // should probably replace memes with quality code at some point
+			self.move_defensively_to(&friend.position);
+		}
 	}
 }
 
