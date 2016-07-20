@@ -233,7 +233,7 @@ impl_ChangeDecision!(Hero);
 impl_ChangeDecision!(Team);
 
 pub trait Decisions{
-    fn process_decision(&mut self, Side, &mut Vec<Creep>, &mut Vec<Creep>, &mut Vec<Tower>, &Vec<Tower>, &mut [Hero; 5],
+    fn process_decision(&mut self, Side, &CreepClashPositions, &mut Vec<Creep>, &mut Vec<Creep>, &mut Vec<Tower>, &Vec<Tower>, &mut [Hero; 5],
         &Vec<HeroInfo>, &mut HashMap<&'static str, NeutralCamp>, &mut HashMap<&'static str, NeutralCamp>,Position);
 
     fn should_change_decision(&mut self, Position, u64, our_friends: &Vec<HeroInfo>) -> bool;
@@ -252,7 +252,7 @@ pub trait Decisions{
 }
 
 impl Decisions for Hero{
-    fn process_decision(&mut self, side: Side, our_creeps: &mut Vec<Creep>, their_creeps: &mut Vec<Creep>, their_towers: &mut Vec<Tower>,
+    fn process_decision(&mut self, side: Side, creep_clash_pos: &CreepClashPositions, our_creeps: &mut Vec<Creep>, their_creeps: &mut Vec<Creep>, their_towers: &mut Vec<Tower>,
     our_towers: &Vec<Tower>, their_heroes: &mut [Hero; 5], our_friends: &Vec<HeroInfo>,
      our_neutrals: &mut HashMap<&'static str, NeutralCamp>, their_neutrals: &mut HashMap<&'static str, NeutralCamp>,
       fountain_position: Position){
@@ -269,9 +269,9 @@ impl Decisions for Hero{
             Action::DefendTopTower => self.move_to_defend_tower(Lane::Top, our_towers),
             Action::DefendMidTower => self.move_to_defend_tower(Lane::Mid, our_towers),
             Action::DefendBotTower => self.move_to_defend_tower(Lane::Bot, our_towers),
-            Action::GankTop => self.gank_lane(Lane::Top, their_creeps, their_heroes),
-            Action::GankMid => self.gank_lane(Lane::Mid, their_creeps, their_heroes),
-            Action::GankBot => self.gank_lane(Lane::Bot, their_creeps, their_heroes),
+            Action::GankTop => self.gank_lane(Lane::Top, their_creeps, their_heroes, their_towers, creep_clash_pos),
+            Action::GankMid => self.gank_lane(Lane::Mid, their_creeps, their_heroes, their_towers, creep_clash_pos),
+            Action::GankBot => self.gank_lane(Lane::Bot, their_creeps, their_heroes, their_towers, creep_clash_pos),
             Action::FollowHeroOne => self.follow_hero(friend_one, their_heroes),
             Action::FollowHeroTwo => self.follow_hero(friend_two, their_heroes),
             Action::FollowHeroThree => self.follow_hero(friend_three, their_heroes),

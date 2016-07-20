@@ -29,7 +29,6 @@ pub trait JustDoingWatNeutralsDo{
     fn respawn(&mut self);
     fn move_directly_to(&mut self, &Position, time_to_tick: &u64);
     fn chase_aggro(&mut self, time_to_tick: &u64);
-
 }
 
 impl JustDoingWatNeutralsDo for NeutralCamp{

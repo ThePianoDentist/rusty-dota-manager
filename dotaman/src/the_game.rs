@@ -8,6 +8,7 @@ use hero_ai::*;
 
 pub const MAX_COORD: f32  = 600.0;
 pub const TIME_TO_TICK: u64 = 40;
+pub const TOWER_RANGE: f32 = 30.; // heroes also need to know tower ranges for decision making
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum Lane{
@@ -22,6 +23,12 @@ pub enum Side{
 	Dire
 }
 
+pub struct CreepClashPositions{
+	pub top_clash: Position,
+	pub mid_clash: Position,
+	pub bot_clash: Position
+}
+
 pub struct Game {
 	pub game_tick: u64,
 	pub game_time: u64,
@@ -29,6 +36,7 @@ pub struct Game {
 	pub xp_range: f32,
 	pub commentary_string: String,
 	pub time_to_tick: u64,
+	pub creep_clash_positions: CreepClashPositions
 }
 
 pub struct Team{
@@ -149,18 +157,23 @@ impl ResetStuff for Game{
 }
 
 pub trait AttackCreeps{
-	fn attack_enemy_creeps(&mut self, &mut Vec<Creep>);
+	fn attack_enemy_creeps(&mut self, &mut Vec<Creep>, &mut CreepClashPositions);
 	fn attack_neutral(&mut self, neutral: &mut NeutralCamp);
 	fn attack_all_neutrals(&mut self, neutrals: &mut HashMap<&'static str, NeutralCamp>);
 }
 
-
 macro_rules! impl_AttackCreeps {
     ($T:ident) => {
 		impl AttackCreeps for $T{
-			fn attack_enemy_creeps(&mut self, enemy_creeps: &mut Vec<Creep>){
+			fn attack_enemy_creeps(&mut self, enemy_creeps: &mut Vec<Creep>, creep_clash_positions: &mut CreepClashPositions){
 				for creep in enemy_creeps.iter_mut(){
 					if self.position.distance_between(creep.position) < self.range{
+						// hmm i think this means need to split macro for creeps
+						match creep.lane{
+							Lane::Top => {creep_clash_positions.top_clash = creep.position},
+							Lane::Mid => {creep_clash_positions.mid_clash = creep.position},
+							Lane::Bot => {creep_clash_positions.bot_clash = creep.position},
+						};
 						self.attack_cooldown -= 1.;
 						self.can_action = false;
 						if self.attack_cooldown < 0.0{
@@ -224,6 +237,7 @@ macro_rules! impl_AttackClosestHero{
 			}
 
 			fn attack_hero(&mut self, hero: &mut Hero){
+				let distance_to_hero = self.position.distance_between(hero.position);
 				if self.position.distance_between(hero.position) < self.range && self.can_action{
 					self.can_action = false;
 					self.attack_cooldown -= 1.;

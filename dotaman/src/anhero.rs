@@ -101,18 +101,22 @@ pub enum Rune{
 
 impl_AttackBuilding!(Hero);
 impl_AttackClosestHero!(Hero);
-impl_AttackCreeps!(Hero);
-/*impl AttackCreeps for Hero{
+//impl_AttackCreeps!(Hero);
+
+pub trait AttackCreepsHero{
+	fn attack_enemy_creeps(&mut self, &mut Vec<Creep>);
+	fn attack_neutral(&mut self, neutral: &mut NeutralCamp);
+	fn attack_all_neutrals(&mut self, neutrals: &mut HashMap<&'static str, NeutralCamp>);
+}
+
+impl AttackCreepsHero for Hero{
 	fn attack_enemy_creeps(&mut self, enemy_creeps: &mut Vec<Creep>){
 		for creep in enemy_creeps.iter_mut(){
 			if self.position.distance_between(creep.position) < self.range{
 				self.attack_cooldown -= 1.;
 				self.can_action = false;
 				if self.attack_cooldown < 0.0{
-					creep.hp -= self.attack_damage as i32;
-					if creep.hp < 0{
-						self.gold += 40.
-					}
+					creep.hp -= self.attack_damage;
 					self.attack_cooldown += self.attack_rate;
 				}
 				break;
@@ -130,6 +134,41 @@ impl_AttackCreeps!(Hero);
 				self.gold += 40.
 			}
 			self.attack_cooldown += self.attack_rate;
+		}
+	}
+
+	fn attack_all_neutrals(&mut self, neutrals: &mut HashMap<&'static str, NeutralCamp>){
+		for (camp_name, mut camp) in neutrals{
+			if self.position.distance_between(camp.position) <= self.range{
+				self.attack_neutral(&mut camp);
+			}
+		}
+	}
+}
+
+/*impl AttackClosestHero for Hero{
+	fn attack_closest_hero(&mut self, enemy_heroes: &mut [Hero]){
+		for hero in enemy_heroes.iter_mut(){
+			if self.position.distance_between(hero.position) < self.range && self.can_action{
+				self.can_action = false;
+				self.attack_cooldown -= 1.;
+				if self.attack_cooldown < 0.0{
+					hero.hp -= self.attack_damage as f32;
+					self.attack_cooldown += self.attack_rate; //bug with attacking too fast, it sorts of cycles all the way through once without realising...do two attacks in one tick??
+				}
+				break;
+			}
+		}
+	}
+
+	fn attack_hero(&mut self, hero: &mut Hero){
+		if self.position.distance_between(hero.position) < self.range && self.can_action{
+			self.can_action = false;
+			self.attack_cooldown -= 1.;
+			if self.attack_cooldown < 0.0{
+				hero.hp -= self.attack_damage as f32;
+				self.attack_cooldown += self.attack_rate; //bug with attacking too fast, it sorts of cycles all the way through once without realising...do two attacks in one tick??
+			}
 		}
 	}
 }
@@ -425,35 +464,40 @@ impl DefendTower for Hero{
 }
 
 pub trait Gank{
-	fn gank_lane(&mut self, Lane, &mut Vec<Creep>, &mut [Hero; 5]);
+	fn gank_lane(&mut self, Lane, &mut Vec<Creep>, &mut [Hero; 5], &mut Vec<Tower>, &CreepClashPositions);
 }
 
 impl Gank for Hero{
-	fn gank_lane(&mut self, lane: Lane, their_creeps: &mut Vec<Creep>, enemy_heroes: &mut [Hero; 5]){
+	fn gank_lane(&mut self, lane: Lane, their_creeps: &mut Vec<Creep>, enemy_heroes: &mut [Hero; 5],
+		 their_towers: &mut Vec<Tower>, creep_clash_positions: &CreepClashPositions){
 		let closest_enemy_creeps = &their_creeps.clone().into_iter().
 			filter(|&x| x.lane == lane).collect::<Vec<Creep>>();
-		if closest_enemy_creeps.len() > 0{
-			let closest_enemy_creep = closest_enemy_creeps[0];
-			let creep_diff = self.position.distance_between(closest_enemy_creep.position); // check creeps exist
-			let mut hero_diff = 9001.;
-			let mut closest_hero = None;
-			for hero in enemy_heroes.iter_mut(){
-				let distance = self.position.distance_between(hero.position);
-				if distance < hero_diff{
-					closest_hero = Some(hero);
-					hero_diff = distance;
-				}
+		let creep_clash_pos = match lane{
+			Lane::Top => creep_clash_positions.top_clash,
+			Lane::Mid => creep_clash_positions.mid_clash,
+			Lane::Bot => creep_clash_positions.bot_clash,
+		};
+		//let closest_enemy_tower // seems like it would bug if tries to gank diagonal but t1 mid up. also walks into vision
+		let creep_diff = self.position.distance_between(creep_clash_pos);
+		let mut hero_diff = 9001.;
+		let mut closest_hero = None;
+		for hero in enemy_heroes.iter_mut(){
+			let distance = self.position.distance_between(hero.position);
+			if distance < hero_diff{
+				closest_hero = Some(hero);
+				hero_diff = distance;
 			}
-			match closest_hero{
-				Some(hero) =>{
-					match (creep_diff, hero_diff){
-						(cd, _) if cd > 50. => self.move_directly_to(&closest_enemy_creep.position),
-						(_, hd) if hd > self.range => self.move_directly_to(&hero.position),
-						_ => self.attack_hero(hero)
-					};
-				}
-				None => {}
+		}
+		match closest_hero{
+			Some(hero) =>{
+				match (creep_diff, hero_diff){
+					(cd, _) if cd > 60. => self.move_directly_to(&creep_clash_pos),
+					(_, hd) if hd > self.range && hd < 100. => self.move_directly_to(&hero.position),
+					(_, hd) if hd > self.range => {}, // if hero too far away we just lurk in the shadows
+					_ => self.attack_hero(hero)
+				};
 			}
+			None => {}
 		}
 	}
 }

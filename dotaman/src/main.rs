@@ -480,13 +480,17 @@ fn main() {
         should_change_decision: false
     };
 
+    let creep_clash_initial = CreepClashPositions{top_clash: Position{x: 0., y: 0.},
+        mid_clash: Position{x: 0., y: 0.}, bot_clash: Position{x: 0., y: 0.}};
+
 	let mut game = Game{
 		game_tick: 0,
 		game_time: 0,
         time_to_tick: 40,
 		teams: [radiant, dire],
         xp_range: 200.,
-        commentary_string: "Navi vs Alliance".to_string()
+        commentary_string: "Navi vs Alliance".to_string(),
+        creep_clash_positions: creep_clash_initial,
 	};
 
     //let game_snapshot = game.clone();
@@ -542,15 +546,15 @@ fn main() {
 				_ => (&mut dire[0], &mut rad[0])
 			};
 
-            us.fountain.attack_enemy_creeps(&mut them.lane_creeps);
+            us.fountain.attack_enemy_creeps(&mut them.lane_creeps, &mut game.creep_clash_positions);
 
             for tower in &mut us.towers{
-				tower.attack_enemy_creeps(&mut them.lane_creeps);
+				tower.attack_enemy_creeps(&mut them.lane_creeps, &mut game.creep_clash_positions);
 				tower.attack_closest_hero(&mut them.heroes)
 			};
 
             for creep in &mut us.lane_creeps{
-				creep.attack_enemy_creeps(&mut them.lane_creeps);
+				creep.attack_enemy_creeps(&mut them.lane_creeps, &mut game.creep_clash_positions);
 				if !creep.can_action{continue};
                 creep.attack_all_neutrals(&mut us.neutrals); // should really not care about side
 				if !creep.can_action{continue};
@@ -570,7 +574,7 @@ fn main() {
             let our_friends = us.get_other_hero_info();
 
             for hero in &mut us.heroes{
-                hero.process_decision(us.side, &mut us.lane_creeps, &mut them.lane_creeps, &mut them.towers, &us.towers,
+                hero.process_decision(us.side, &game.creep_clash_positions, &mut us.lane_creeps, &mut them.lane_creeps, &mut them.towers, &us.towers,
                     &mut them.heroes, &our_friends, &mut us.neutrals, &mut them.neutrals, us.fountain.position);
             }
 
