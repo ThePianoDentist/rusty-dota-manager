@@ -74,6 +74,7 @@ pub trait TeamDecisions{
     fn five_man_def(&mut self, Lane);
     fn update_decision_prob(&mut self, update_action: TeamAction, new_prob: f32);
     fn update_multi_decisions_prob(&mut self, updates: Vec<(TeamAction, f32)>);
+    fn standard_lanes(&mut self);
 }
 
 impl TeamDecisions for Team{
@@ -87,6 +88,7 @@ impl TeamDecisions for Team{
             TeamAction::DefendTopTowerFive => self.five_man_def(Lane::Top),
             TeamAction::DefendMidTowerFive => self.five_man_def(Lane::Mid),
             TeamAction::DefendBotTowerFive => self.five_man_def(Lane::Bot),
+            TeamAction::StandardLaning => self.standard_lanes(),
             /*
             TeamAction::DefendTowerFour,
             TeamAction::FourManAttackTower,
@@ -203,6 +205,10 @@ impl TeamDecisions for Team{
         for hero in self.heroes.iter_mut(){
             hero.update_decision_prob(action, 1.);
         }
+    }
+
+    fn standard_lanes(&mut self){
+        
     }
 }
 

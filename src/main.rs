@@ -549,7 +549,7 @@ fn main() {
 
             for tower in &mut us.towers{
 				tower.attack_enemy_creeps(&mut them.lane_creeps, &mut game.creep_clash_positions);
-                // if tower.can_acion?
+                if !tower.can_action{continue};
 				tower.attack_closest_hero(&mut them.heroes)
 			};
 

@@ -479,6 +479,7 @@ impl Gank for Hero{
  		};
 		if self.attacked_by_tower{ // run away!!!
 			self.move_directly_to(&creep_clash_pos); // should probably run somewhere cleverer
+			self.should_change_decision = true;
 			return
 		}
 		let closest_enemy_creeps = &their_creeps.clone().into_iter().
