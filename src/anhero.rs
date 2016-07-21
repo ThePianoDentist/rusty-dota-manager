@@ -563,6 +563,28 @@ impl Pull for Hero{
 		};
 	}
 }
+
+pub trait GetXp{
+	fn get_xp(&mut self, Lane, &Vec<Creep>, &f32, &Position);
+}
+
+impl GetXp for Hero{
+	// Should only need to be within xp range - attack range creeps
+	// might be bug where we lose some xp for slightly further away, maybe get bit closer
+	// may need rewriting once have ranged creeps
+	fn get_xp(&mut self, lane: Lane, our_creeps: &Vec<Creep>, xp_range: &f32, fountain_position: &Position){
+		let front_creep = our_creeps.into_iter().filter(|&x| x.lane == lane).collect::<Vec<&Creep>>();
+		if front_creep.len() > 1{
+			let creep = &front_creep[0];
+			match self.position.distance_between(creep.position){
+				x if x > xp_range - creep.range => self.move_directly_to(&creep.position),
+				// if under xp range maybe play safe and run back
+				x if x < xp_range - creep.range => self.move_directly_to(fountain_position),
+				_ => {}
+			}
+		}
+	}
+}
 /*pub trait GetDecision{
 	fn get_decision(self) -> &Decision;
 }

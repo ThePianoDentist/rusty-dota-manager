@@ -572,6 +572,7 @@ fn main() {
             }
         }
 
+        // 2nd loop here is because hero needs to know if hs been attacked by tower to run away. bad design?
         for i in 0..2{  // this surely makes game imbalanced.
             let (rad, dire) = game.teams.split_at_mut(1);
 			let (mut us, mut them) = match i{
@@ -582,9 +583,7 @@ fn main() {
             let our_friends = us.get_other_hero_info();
 
             for hero in &mut us.heroes{
-                if hero.attacked_by_tower{
-                println!("hero attacked by tower oing into proc dec")}
-                hero.process_decision(us.side, &game.creep_clash_positions, &mut us.lane_creeps, &mut them.lane_creeps, &mut them.towers, &us.towers,
+                hero.process_decision(us.side, &game.creep_clash_positions, &game.xp_range ,&mut us.lane_creeps, &mut them.lane_creeps, &mut them.towers, &us.towers,
                     &mut them.heroes, &our_friends, &mut us.neutrals, &mut them.neutrals, us.fountain.position);
             }
 

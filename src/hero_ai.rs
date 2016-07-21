@@ -40,7 +40,10 @@ pub enum Action{
     PullEasy,
     GetXpTop,
     GetXpMid,
-    GetXpBot
+    GetXpBot,
+    ZoneBot,
+    ZoneTop,
+    ZoneMid
 }
 
 #[derive(PartialEq, Copy, Clone, Hash, Eq, Debug)]
@@ -208,7 +211,22 @@ impl TeamDecisions for Team{
     }
 
     fn standard_lanes(&mut self){
-        
+        let action_safelane = match self.safelane(){
+            Lane::Top => Action::FarmTopLane,
+            _ => Action::FarmBotLane,
+        };
+        let action_offlane = match self.offlane(){
+            Lane::Top => Action::GetXpTop,
+            _ => Action::GetXpBot
+        };
+        for hero in self.heroes.iter_mut(){
+            match hero.priority{
+                4 | 5 => hero.update_decision_prob(Action::FollowHeroOne, 1.),
+                3 => hero.update_decision_prob(action_offlane, 1.),
+                2 => hero.update_decision_prob(Action::FarmMidLane, 1.),
+                _ => hero.update_decision_prob(action_safelane, 1.),
+            }
+        }
     }
 }
 
@@ -239,7 +257,7 @@ impl_ChangeDecision!(Hero);
 impl_ChangeDecision!(Team);
 
 pub trait Decisions{
-    fn process_decision(&mut self, Side, &CreepClashPositions, &mut Vec<Creep>, &mut Vec<Creep>, &mut Vec<Tower>, &Vec<Tower>, &mut [Hero; 5],
+    fn process_decision(&mut self, Side, &CreepClashPositions, &f32, &mut Vec<Creep>, &mut Vec<Creep>, &mut Vec<Tower>, &Vec<Tower>, &mut [Hero; 5],
         &Vec<HeroInfo>, &mut HashMap<&'static str, NeutralCamp>, &mut HashMap<&'static str, NeutralCamp>,Position);
 
     fn should_change_decision(&mut self, Position, u64, our_friends: &Vec<HeroInfo>) -> bool;
@@ -258,7 +276,8 @@ pub trait Decisions{
 }
 
 impl Decisions for Hero{
-    fn process_decision(&mut self, side: Side, creep_clash_pos: &CreepClashPositions, our_creeps: &mut Vec<Creep>, their_creeps: &mut Vec<Creep>, their_towers: &mut Vec<Tower>,
+    fn process_decision(&mut self, side: Side, creep_clash_pos: &CreepClashPositions, xp_range: &f32,
+        our_creeps: &mut Vec<Creep>, their_creeps: &mut Vec<Creep>, their_towers: &mut Vec<Tower>,
     our_towers: &Vec<Tower>, their_heroes: &mut [Hero; 5], our_friends: &Vec<HeroInfo>,
      our_neutrals: &mut HashMap<&'static str, NeutralCamp>, their_neutrals: &mut HashMap<&'static str, NeutralCamp>,
       fountain_position: Position){
@@ -288,6 +307,9 @@ impl Decisions for Hero{
             Action::FarmFriendlyAncients => self.farm_ancients(our_neutrals),
             Action::FarmEnemyAncients => self.farm_ancients(their_neutrals),
             Action::PullEasy => self.pull_easy(our_neutrals, side),
+            Action::GetXpTop => self.get_xp(Lane::Top, &our_creeps, xp_range, &fountain_position),
+            Action::GetXpMid => self.get_xp(Lane::Mid, &our_creeps, xp_range, &fountain_position),
+            Action::GetXpBot => self.get_xp(Lane::Bot, &our_creeps, xp_range, &fountain_position),
             _ => {println!("dude wgtf"); self.farm_lane(Lane::Top, our_creeps, their_creeps, their_towers)}
         };
     }
