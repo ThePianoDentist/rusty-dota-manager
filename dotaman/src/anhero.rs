@@ -65,6 +65,8 @@ pub struct Hero{
 	pub should_change_decision: bool,
 	pub side: Side,
 	pub priority: u32,
+	// this means dont have to loop through all towers everytime check if tower diving
+	pub attacked_by_tower: bool,
 }
 
 // This is so that when we are looping through our own heroes, we are still allowed access to info on them
@@ -115,7 +117,7 @@ impl AttackCreepsHero for Hero{
 			if self.position.distance_between(creep.position) < self.range{
 				self.attack_cooldown -= 1.;
 				self.can_action = false;
-				if self.attack_cooldown < 0.0{
+				if self.attack_cooldown <= 0.0{
 					creep.hp -= self.attack_damage;
 					self.attack_cooldown += self.attack_rate;
 				}
@@ -128,9 +130,9 @@ impl AttackCreepsHero for Hero{
 		self.hp -= neutral.attack_damage;
 		self.attack_cooldown -= 1.;
 		self.can_action = false;
-		if self.attack_cooldown < 0.0{
+		if self.attack_cooldown <= 0.0{
 			neutral.hp -= self.attack_damage;
-			if neutral.hp < 0.{
+			if neutral.hp <= 0.{
 				self.gold += 40.
 			}
 			self.attack_cooldown += self.attack_rate;
@@ -470,13 +472,17 @@ pub trait Gank{
 impl Gank for Hero{
 	fn gank_lane(&mut self, lane: Lane, their_creeps: &mut Vec<Creep>, enemy_heroes: &mut [Hero; 5],
 		 their_towers: &mut Vec<Tower>, creep_clash_positions: &CreepClashPositions){
+		let creep_clash_pos = match lane{
+ 			Lane::Top => creep_clash_positions.top_clash,
+ 			Lane::Mid => creep_clash_positions.mid_clash,
+ 			Lane::Bot => creep_clash_positions.bot_clash,
+ 		};
+		if self.attacked_by_tower{ // run away!!!
+			self.move_directly_to(&creep_clash_pos); // should probably run somewhere cleverer
+			return
+		}
 		let closest_enemy_creeps = &their_creeps.clone().into_iter().
 			filter(|&x| x.lane == lane).collect::<Vec<Creep>>();
-		let creep_clash_pos = match lane{
-			Lane::Top => creep_clash_positions.top_clash,
-			Lane::Mid => creep_clash_positions.mid_clash,
-			Lane::Bot => creep_clash_positions.bot_clash,
-		};
 		//let closest_enemy_tower // seems like it would bug if tries to gank diagonal but t1 mid up. also walks into vision
 		let creep_diff = self.position.distance_between(creep_clash_pos);
 		let mut hero_diff = 9001.;
@@ -491,10 +497,10 @@ impl Gank for Hero{
 		match closest_hero{
 			Some(hero) =>{
 				match (creep_diff, hero_diff){
+					(_, hd) if hd < self.range => self.attack_hero(hero),
+					(_, hd) if hd >= self.range && hd < 100. => self.move_directly_to(&hero.position),
 					(cd, _) if cd > 60. => self.move_directly_to(&creep_clash_pos),
-					(_, hd) if hd > self.range && hd < 100. => self.move_directly_to(&hero.position),
-					(_, hd) if hd > self.range => {}, // if hero too far away we just lurk in the shadows
-					_ => self.attack_hero(hero)
+					_ => {}, // if hero too far away we just lurk in the shadows
 				};
 			}
 			None => {}

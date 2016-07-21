@@ -33,7 +33,7 @@ pub trait JustDoingWatNeutralsDo{
 
 impl JustDoingWatNeutralsDo for NeutralCamp{
     fn respawn(&mut self){
-        if self.hp < 0.{
+        if self.hp <= 0.{
             self.position = self.home_position;
             self.aggro_position = None;
             self.hp = self.max_hp;

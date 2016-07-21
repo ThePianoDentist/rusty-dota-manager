@@ -128,6 +128,7 @@ impl ResetStuff for Game{
 			for creep in &mut self.teams[i].lane_creeps{creep.can_action = true;};
 			for tower in &mut self.teams[i].towers{tower.can_action = true;};
 			for hero in &mut self.teams[i].heroes{
+				hero.attacked_by_tower = false;
 				hero.respawn_timer -= 1;
 				if hero.respawn_timer <=0 {hero.can_action = true};
 				};
@@ -176,7 +177,7 @@ macro_rules! impl_AttackCreeps {
 						};
 						self.attack_cooldown -= 1.;
 						self.can_action = false;
-						if self.attack_cooldown < 0.0{
+						if self.attack_cooldown <= 0.0{
 							creep.hp -= self.attack_damage;
 							self.attack_cooldown += self.attack_rate;
 						}
@@ -189,9 +190,9 @@ macro_rules! impl_AttackCreeps {
 				self.hp -= neutral.attack_damage;
 				self.attack_cooldown -= 1.;
 				self.can_action = false;
-				if self.attack_cooldown < 0.0{
+				if self.attack_cooldown <= 0.0{
 					neutral.hp -= self.attack_damage;
-					if neutral.hp < 0.{
+					if neutral.hp <= 0.{
 						self.gold += 40.
 					}
 					self.attack_cooldown += self.attack_rate;
@@ -227,8 +228,8 @@ macro_rules! impl_AttackClosestHero{
 					if self.position.distance_between(hero.position) < self.range && self.can_action{
 						self.can_action = false;
 						self.attack_cooldown -= 1.;
-						if self.attack_cooldown < 0.0{
-							hero.hp -= self.attack_damage as f32;
+						if self.attack_cooldown <= 0.0{
+							hero.hp -= self.attack_damage;
 							self.attack_cooldown += self.attack_rate; //bug with attacking too fast, it sorts of cycles all the way through once without realising...do two attacks in one tick??
 						}
 						break;
@@ -241,8 +242,8 @@ macro_rules! impl_AttackClosestHero{
 				if self.position.distance_between(hero.position) < self.range && self.can_action{
 					self.can_action = false;
 					self.attack_cooldown -= 1.;
-					if self.attack_cooldown < 0.0{
-						hero.hp -= self.attack_damage as f32;
+					if self.attack_cooldown <= 0.0{
+						hero.hp -= self.attack_damage;
 						self.attack_cooldown += self.attack_rate; //bug with attacking too fast, it sorts of cycles all the way through once without realising...do two attacks in one tick??
 					}
 				}
@@ -251,7 +252,36 @@ macro_rules! impl_AttackClosestHero{
 	}
 }
 
-impl_AttackClosestHero!(Tower);
+impl AttackClosestHero for Tower{
+	fn attack_closest_hero(&mut self, enemy_heroes: &mut [Hero]){
+		for hero in enemy_heroes.iter_mut(){
+			if self.position.distance_between(hero.position) < self.range && self.can_action{
+				self.can_action = false;
+				self.attack_cooldown -= 1.;
+				if self.attack_cooldown <= 0.0{
+					hero.hp -= self.attack_damage;
+					hero.attacked_by_tower = true;
+					self.attack_cooldown += self.attack_rate; //bug with attacking too fast, it sorts of cycles all the way through once without realising...do two attacks in one tick??
+				}
+				break;
+			}
+		}
+	}
+
+	fn attack_hero(&mut self, hero: &mut Hero){
+		let distance_to_hero = self.position.distance_between(hero.position);
+		if self.position.distance_between(hero.position) < self.range && self.can_action{
+			self.can_action = false;
+			self.attack_cooldown -= 1.;
+			if self.attack_cooldown <= 0.0{
+				hero.hp -= self.attack_damage;
+				hero.attacked_by_tower = true;
+				self.attack_cooldown += self.attack_rate; //bug with attacking too fast, it sorts of cycles all the way through once without realising...do two attacks in one tick??
+			}
+		}
+	}
+}
+
 impl_AttackClosestHero!(Creep);
 impl_AttackClosestHero!(Fountain);
 
@@ -268,7 +298,7 @@ macro_rules! impl_AttackBuilding {
 					if self.position.distance_between(tower.position) < self.range{
 						self.can_action = false;
 						self.attack_cooldown -= 1.;
-						if self.attack_cooldown < 0.0{
+						if self.attack_cooldown <= 0.0{
 							tower.hp -= self.attack_damage;
 							self.attack_cooldown += self.attack_rate;
 						}
@@ -281,7 +311,7 @@ macro_rules! impl_AttackBuilding {
 				if self.position.distance_between(throne.position) < self.range{
 					self.can_action = false;
 					self.attack_cooldown -= 1.;
-					if self.attack_cooldown < 0.0{
+					if self.attack_cooldown <= 0.0{
 						throne.hp -= self.attack_damage;
 						self.attack_cooldown += self.attack_rate;
 					}
@@ -420,7 +450,7 @@ impl KillOff for Game{
 				_ => (&mut dire[0], &mut rad[0])
 			};
 			for creep in &mut us.lane_creeps{
-				if creep.hp < 0.{
+				if creep.hp <= 0.{
 					let mut heroes_in_xp_range = 0;
 					for hero in &them.heroes{
 						if hero.position.distance_between(creep.position) <= self.xp_range{
@@ -435,7 +465,7 @@ impl KillOff for Game{
 					// I dont think its safe/wise to do the delete in the loop. so just loop again down below?
 				}
 			}
-			us.lane_creeps.retain(|&i| i.hp > 0.);
+			us.lane_creeps.retain(|&i| i.hp >= 0.);
 		};
 	}
 
@@ -476,7 +506,7 @@ impl KillOff for Game{
 					them.should_change_decision = true;
 				}
 			}
-			us.towers.retain(|&i| i.hp > 0.);
+			us.towers.retain(|&i| i.hp >= 0.);
 		}
 	}
 }

@@ -395,6 +395,7 @@ fn main() {
                     priority: 5,
                     xp: 0.0,
                     should_change_decision: false,
+                    attacked_by_tower: false,
 		};
 
 	let enigma = Hero{name: "enigma", pic: enigma_pic, decisions: decisions.clone(), current_decision: enigma_decision, priority: 4,.. rubick};
@@ -480,8 +481,8 @@ fn main() {
         should_change_decision: false
     };
 
-    let creep_clash_initial = CreepClashPositions{top_clash: Position{x: 0., y: 0.},
-        mid_clash: Position{x: 0., y: 0.}, bot_clash: Position{x: 0., y: 0.}};
+    let creep_clash_initial = CreepClashPositions{top_clash: Position{x: 70., y: 122.},
+        mid_clash: Position{x: 278., y: 322.}, bot_clash: Position{x: 530., y: 480.}};
 
 	let mut game = Game{
 		game_tick: 0,
@@ -537,8 +538,6 @@ fn main() {
 		}
 		//println!("game time {}", game.game_tick);
 
-		game.reset_all_attack_cooldown();
-
 		for i in 0..2{  // this surely makes game imbalanced.
             let (rad, dire) = game.teams.split_at_mut(1);
 			let (mut us, mut them) = match i{
@@ -550,6 +549,7 @@ fn main() {
 
             for tower in &mut us.towers{
 				tower.attack_enemy_creeps(&mut them.lane_creeps, &mut game.creep_clash_positions);
+                // if tower.can_acion?
 				tower.attack_closest_hero(&mut them.heroes)
 			};
 
@@ -570,10 +570,20 @@ fn main() {
                     camp.chase_aggro(&game.time_to_tick);
                 }
             }
+        }
+
+        for i in 0..2{  // this surely makes game imbalanced.
+            let (rad, dire) = game.teams.split_at_mut(1);
+			let (mut us, mut them) = match i{
+				0 => (&mut rad[0], &mut dire[0]),
+				_ => (&mut dire[0], &mut rad[0])
+			};
 
             let our_friends = us.get_other_hero_info();
 
             for hero in &mut us.heroes{
+                if hero.attacked_by_tower{
+                println!("hero attacked by tower oing into proc dec")}
                 hero.process_decision(us.side, &game.creep_clash_positions, &mut us.lane_creeps, &mut them.lane_creeps, &mut them.towers, &us.towers,
                     &mut them.heroes, &our_friends, &mut us.neutrals, &mut them.neutrals, us.fountain.position);
             }
@@ -595,15 +605,18 @@ fn main() {
             }
         };
 
+		game.teams[0].move_creeps_radiant(&game.time_to_tick);
+		game.teams[1].move_creeps_dire(&game.time_to_tick);
+
+        game.reset_all_attack_cooldown();
 		game.kill_off_creeps();
 		game.kill_off_heroes();
         game.kill_off_towers();
         game.fountain_heal();
+
         if game.game_time % 60 == 0{
             game.respawn_neutrals();
         }
-		game.teams[0].move_creeps_radiant(&game.time_to_tick);
-		game.teams[1].move_creeps_dire(&game.time_to_tick);
 
 		while let Some(e) = events.next(&mut app.window) {
 			if let Some(r) = e.render_args() {
