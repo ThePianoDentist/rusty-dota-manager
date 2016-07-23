@@ -69,7 +69,7 @@ pub enum TeamAction{
 
 pub trait TeamDecisions{
     fn process_team_decision(&mut self);
-    fn should_change_team_decision(&mut self, game_time: u64) -> bool;
+    fn should_change_team_decision(&mut self, game_time: u64, game_tick: u64) -> bool;
     fn change_team_decision(&mut self);
     fn greedy_farming(&mut self);
     fn greedy_farm_sup_gank(&mut self);
@@ -78,6 +78,7 @@ pub trait TeamDecisions{
     fn update_decision_prob(&mut self, update_action: TeamAction, new_prob: f32);
     fn update_multi_decisions_prob(&mut self, updates: Vec<(TeamAction, f32)>);
     fn standard_lanes(&mut self);
+    fn dual_off(&mut self);
 }
 
 impl TeamDecisions for Team{
@@ -106,20 +107,29 @@ impl TeamDecisions for Team{
         }
     }
 
-    fn should_change_team_decision(&mut self, game_time: u64) -> bool{
-        //abadnon laning
-        if game_time == 70{
-            if self.side == Side::Radiant{
-            self.update_decision_prob(TeamAction::FiveManTop, 1.0);
+    fn should_change_team_decision(&mut self, game_time: u64, game_tick: u64) -> bool{
+        let mut change = self.should_change_decision;
+        if !change{
+            if game_time == 70{
+                if self.side == Side::Radiant{
+                self.update_decision_prob(TeamAction::FiveManTop, 1.0);
+                }
+                else{
+                    self.update_decision_prob(TeamAction::FiveManMid, 1.0);
+                }
+                change = true;
             }
-            else{
-                self.update_decision_prob(TeamAction::FiveManMid, 1.0);
+        }
+        let our_friends = self.get_other_hero_info();
+        let fountain_pos = self.fountain.position;
+        for hero in &mut self.heroes{
+            // individual hero level decision changes
+            let hero_decision = hero.should_change_decision(fountain_pos, game_tick, &our_friends);
+            if hero_decision{
+                change = true;
             }
-            true
         }
-        else{
-            false
-        }
+        change
     }
 
     fn change_team_decision(&mut self){
@@ -138,16 +148,25 @@ impl TeamDecisions for Team{
 
     fn update_multi_decisions_prob(&mut self, updates: Vec<(TeamAction, f32)>){
         let mut total_new_prob = 0.;
-        for (_, new_prob) in updates.clone(){
+        let mut total_old_prob = 0.;
+        for (update_action, new_prob) in updates.clone(){
             total_new_prob += new_prob;
+            for (action, old_prob) in self.decisions.iter(){
+                match *action{
+                    a if a == update_action => total_old_prob += *old_prob,
+                    _ => {}
+                }
+            }
         }
+
+        // is there another expression for (1 - sum_new/1 - sum_old)?
 
         for (update_action, new_prob) in updates{
             let old_prob = self.decisions.get(&update_action).unwrap().clone(); // is this the right place to use clone?
             for (action, prob) in self.decisions.iter_mut(){
                 *prob = match *action{
                     a if a == update_action => new_prob,
-                    _ => *prob * (1. - (total_new_prob + old_prob))  // scale all the other probabilites
+                    _ => *prob * (1. - total_new_prob)/(1. - total_old_prob)  // scale all the other probabilites
                 };
             }
         }
@@ -211,17 +230,24 @@ impl TeamDecisions for Team{
     }
 
     fn standard_lanes(&mut self){
-        let action_safelane = match self.safelane(){
-            Lane::Top => Action::FarmTopLane,
-            _ => Action::FarmBotLane,
-        };
-        let action_offlane = match self.offlane(){
-            Lane::Top => Action::GetXpTop,
-            _ => Action::GetXpBot
-        };
+        let (action_safelane, action_offlane) = self.farmsafe_xpoff();
         for hero in self.heroes.iter_mut(){
             match hero.priority{
-                4 | 5 => hero.update_decision_prob(Action::FollowHeroOne, 1.),
+                5 => hero.update_decision_prob(Action::FollowHeroOne, 1.),
+                4 => {hero.update_decision_prob(Action::FollowHeroOne, 1.); hero.update_decision_prob(Action::PullEasy, 0.5)},
+                3 => hero.update_decision_prob(action_offlane, 1.),
+                2 => hero.update_decision_prob(Action::FarmMidLane, 1.),
+                _ => hero.update_decision_prob(action_safelane, 1.),
+            }
+        }
+    }
+
+    fn dual_off(&mut self){
+        let (action_safelane, action_offlane) = self.farmsafe_xpoff();
+        for hero in self.heroes.iter_mut(){
+            match hero.priority{
+                5 => hero.update_decision_prob(Action::FollowHeroOne, 1.),
+                4 => hero.update_decision_prob(Action::FollowHeroTwo, 1.),
                 3 => hero.update_decision_prob(action_offlane, 1.),
                 2 => hero.update_decision_prob(Action::FarmMidLane, 1.),
                 _ => hero.update_decision_prob(action_safelane, 1.),
@@ -234,27 +260,35 @@ pub trait ChangeDecision{
     fn change_decision(&mut self);
 }
 
-macro_rules! impl_ChangeDecision {
-    ($T:ident) => {
-        impl ChangeDecision for $T{
-            fn change_decision(&mut self){
-                self.should_change_decision = false;
-                let rand_num = rand::thread_rng().gen_range(1, 101) as f32 / 100.;
-                let mut prob_counter = 0.0;
-                for (action, prob) in &mut self.decisions.iter(){
-                    prob_counter += *prob;
-                    match prob_counter{
-                        p if rand_num > p => {},
-                        _ => {println!("doing action {:?}", action); self.current_decision = *action; break},
-                    }
-                }
+impl ChangeDecision for Hero{
+    fn change_decision(&mut self){
+        self.should_change_decision = false;
+        let rand_num = rand::thread_rng().gen_range(1, 101) as f32 / 100.;
+        let mut prob_counter = 0.0;
+        for (action, prob) in &mut self.decisions.iter(){
+            prob_counter += *prob;
+            match prob_counter{
+                p if rand_num > p => {},
+                _ => {println!("{}: {:?}", self.name, action); self.current_decision = *action; break},
             }
         }
     }
 }
 
-impl_ChangeDecision!(Hero);
-impl_ChangeDecision!(Team);
+impl ChangeDecision for Team{
+    fn change_decision(&mut self){
+        self.should_change_decision = false;
+        let rand_num = rand::thread_rng().gen_range(1, 101) as f32 / 100.;
+        let mut prob_counter = 0.0;
+        for (action, prob) in &mut self.decisions.iter(){
+            prob_counter += *prob;
+            match prob_counter{
+                p if rand_num > p => {},
+                _ => {println!("{:?}: {:?}", self.side, action); self.current_decision = *action; break},
+            }
+        }
+    }
+}
 
 pub trait Decisions{
     fn process_decision(&mut self, Side, &CreepClashPositions, &f32, &mut Vec<Creep>, &mut Vec<Creep>, &mut Vec<Tower>, &Vec<Tower>, &mut [Hero; 5],
@@ -263,6 +297,7 @@ pub trait Decisions{
     fn should_change_decision(&mut self, Position, u64, our_friends: &Vec<HeroInfo>) -> bool;
 
     fn update_decision_prob(&mut self, Action, f32);
+    fn update_multi_decision_prob(&mut self, Vec<(Action, f32)>);
 
     fn check_if_should_heal(&mut self) -> bool;
 
@@ -307,9 +342,9 @@ impl Decisions for Hero{
             Action::FarmFriendlyAncients => self.farm_ancients(our_neutrals),
             Action::FarmEnemyAncients => self.farm_ancients(their_neutrals),
             Action::PullEasy => self.pull_easy(our_neutrals, side),
-            Action::GetXpTop => self.get_xp(Lane::Top, &our_creeps, xp_range, &fountain_position),
-            Action::GetXpMid => self.get_xp(Lane::Mid, &our_creeps, xp_range, &fountain_position),
-            Action::GetXpBot => self.get_xp(Lane::Bot, &our_creeps, xp_range, &fountain_position),
+            Action::GetXpTop => self.get_xp(Lane::Top, &their_creeps, xp_range, &fountain_position),
+            Action::GetXpMid => self.get_xp(Lane::Mid, &their_creeps, xp_range, &fountain_position),
+            Action::GetXpBot => self.get_xp(Lane::Bot, &their_creeps, xp_range, &fountain_position),
             _ => {println!("dude wgtf"); self.farm_lane(Lane::Top, our_creeps, their_creeps, their_towers)}
         };
     }
@@ -319,7 +354,7 @@ impl Decisions for Hero{
             self.should_change_decision = self.check_if_should_heal();
         }
         if !self.should_change_decision{
-            self.should_change_decision= self.check_if_healed_fountain(fountain_position, game_tick, our_friends);
+            self.should_change_decision = self.check_if_healed_fountain(fountain_position, game_tick, our_friends);
         }
         self.should_change_decision
     }
@@ -335,6 +370,30 @@ impl Decisions for Hero{
         }
     }
 
+    fn update_multi_decision_prob(&mut self, updates: Vec<(Action, f32)>){
+        let mut total_new_prob = 0.;
+        let mut total_old_prob = 0.;
+        for (update_action, new_prob) in updates.clone(){
+            total_new_prob += new_prob;
+            for (action, old_prob) in self.decisions.iter(){
+                match *action{
+                    a if a == update_action => total_old_prob += *old_prob,
+                    _ => {}
+                }
+            }
+        }
+
+        for (update_action, new_prob) in updates{
+            let old_prob = self.decisions.get(&update_action).unwrap().clone(); // is this the right place to use clone?
+            for (action, prob) in self.decisions.iter_mut(){
+                *prob = match *action{
+                    a if a == update_action => new_prob,
+                    _ => *prob * (1. - total_new_prob)/(1. - total_old_prob)  // scale all the other probabilites
+                };
+            }
+        }
+    }
+
     fn check_if_should_heal(&mut self) -> bool{
         if self.hp < self.max_hp / 3. && self.current_decision != Action::MoveToFountain{
             self.update_decision_prob(Action::MoveToFountain, 1.0);
@@ -347,6 +406,7 @@ impl Decisions for Hero{
         //will there be a bug if fountain diving
         if game_tick > 100 && self.position == fountain_position
         && self.hp >= self.max_hp{
+            //change team decision
             self.set_out_of_base_decisions(our_friends);
             true
         }

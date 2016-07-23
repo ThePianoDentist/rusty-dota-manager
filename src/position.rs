@@ -38,7 +38,7 @@ impl Distance for Position{
 }
 
 pub trait CoordManipulation{
-	fn small_random_pos_offset(&mut self) -> Position;
+	fn small_random_pos_offset(&self) -> Position;
 	fn swap_x_y(&self) -> Position;
 	fn alter_y(&self, f32) -> Position;
 	fn alter_x(&self, f32) -> Position;
@@ -51,7 +51,7 @@ pub trait CoordManipulation{
 }
 
 impl CoordManipulation for Position{
-	fn small_random_pos_offset(&mut self) -> Position{
+	fn small_random_pos_offset(&self) -> Position{
 		let rand_num = || (rand::thread_rng().gen_range(0, 9)  - 4) as f32;
 		let new_x = self.x  + rand_num();
 		let new_y = self.y  + rand_num();

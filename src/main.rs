@@ -202,6 +202,8 @@ impl<'a> App<'a>{
 
 fn main() {
     println!("Hello, world!");
+    let scale_factor = 15000./MAX_COORD;
+    let fudge = MAX_COORD / 600.; // as initialised a lot assuming 600x600
     let opengl = OpenGL::V2_1;
 
     let mut window: PistonWindow = WindowSettings::new(
@@ -259,6 +261,13 @@ fn main() {
         }
     }
 
+    let t3_dire_top_pos = Position{x: 427. * fudge, y: 94. * fudge};
+	let t3_dire_bot_pos = Position{x: 530. * fudge, y: 203. * fudge};
+    let t3_dire_mid_pos = Position{x: 454. * fudge, y: 170. * fudge};
+
+    let t3_rad_bot_pos = Position{x: 163. * fudge, y: 542. * fudge};
+    let t3_rad_mid_pos = Position{x: 133. * fudge, y: 464. * fudge};
+    let t3_rad_top_pos = Position{x: 58. * fudge, y: 432. * fudge};
     // have only done stats for t1
 	let tower = Tower{
 			lane: Lane::Mid,
@@ -271,50 +280,50 @@ fn main() {
 			attack_rate: 1.0 * TIME_TO_TICK as f32,
 			range: 30.,
             armour: 20.,
-			position: Position{x: (MAX_COORD/2.),
-				y: (MAX_COORD/2.),
+			position: Position{x: 330. * fudge,
+				y: 295. * fudge,
 				},
             gold: 0.
 		};
-	let t2_dire_pos = Position{x: (MAX_COORD/2.) + (MAX_COORD/8.), y: (MAX_COORD/2.) - (MAX_COORD/8.)};
+	let t2_dire_pos = Position{x: 393. * fudge, y: 231. * fudge};
 	let t2_dire_tower = Tower{tier: 2, position: t2_dire_pos, .. tower};
 	let t3_dire_tower = Tower{tier: 3,
-		 position: Position{x: (MAX_COORD/2.) + (MAX_COORD/4.), y: (MAX_COORD/2.) - (MAX_COORD/4.)}, .. tower};
+		 position: t3_dire_mid_pos, .. tower};
 
 	let t1_rad_tower = Tower{
-		 position: Position{x: (MAX_COORD/2.) - (MAX_COORD/16.), y: (MAX_COORD/2.) + (MAX_COORD/16.)}, .. tower};
+		 position: Position{x: 245. * fudge, y: 357. * fudge}, .. tower};
 	let t2_rad_tower = Tower{
-		 position: Position{x: (MAX_COORD/2.) - (MAX_COORD/16.) - (MAX_COORD/8.), y: (MAX_COORD/2.) + (MAX_COORD/16.) + (MAX_COORD/8.)},
+		 position: Position{x: 182. * fudge, y: 420. * fudge},
 			  .. t2_dire_tower};
 	let t3_rad_tower = Tower{
-		 position: Position{x: (MAX_COORD/2.) - (MAX_COORD/16.) - (MAX_COORD/4.), y: (MAX_COORD/2.) + (MAX_COORD/16.) + (MAX_COORD/4.)},
+		 position: t3_rad_mid_pos,
 			  .. t3_dire_tower};
 
-	let t3_rad_top_tower = Tower{lane: Lane::Top, position: Position{x: MAX_COORD/12., y: MAX_COORD *(12.0/16.0)},.. t3_rad_tower};
-	let t2_rad_top_tower = Tower{tier: 2, position: t3_rad_top_tower.position.alter_y(-MAX_COORD/8.), .. t3_rad_top_tower};
-	let t1_rad_top_tower = Tower{tier: 1, position: t2_rad_top_tower.position.alter_y(-MAX_COORD/8.), .. t2_rad_top_tower};
+	let t3_rad_top_tower = Tower{lane: Lane::Top, position: t3_rad_top_pos,.. t3_rad_tower};
+	let t2_rad_top_tower = Tower{tier: 2, position: Position{x: 64. * fudge, y: 343. * fudge}, .. t3_rad_top_tower};
+	let t1_rad_top_tower = Tower{tier: 1, position: Position{x: 65. * fudge, y: 234. * fudge}, .. t2_rad_top_tower};
 
-	let t3_rad_bot_tower = Tower{lane: Lane::Bot, position: Position{x: MAX_COORD/4., y: MAX_COORD * (14.0/16.0)},.. t3_rad_tower};
-	let t2_rad_bot_tower = Tower{tier: 2, position: t3_rad_bot_tower.position.alter_x(MAX_COORD/4.), .. t3_rad_bot_tower};
-	let t1_rad_bot_tower = Tower{tier: 1, position: t2_rad_bot_tower.position.alter_x(MAX_COORD/4.), .. t2_rad_bot_tower};
+	let t3_rad_bot_tower = Tower{lane: Lane::Bot, position: t3_rad_bot_pos,.. t3_rad_tower};
+	let t2_rad_bot_tower = Tower{tier: 2, position: Position{x: 286. * fudge, y: 550. * fudge}, .. t3_rad_bot_tower};
+	let t1_rad_bot_tower = Tower{tier: 1, position: Position{x: 490. * fudge, y: 536. * fudge}, .. t2_rad_bot_tower};
 
-	let t3_dire_top_tower = Tower{lane: Lane::Top, position: Position{x: MAX_COORD - MAX_COORD/4., y: MAX_COORD * (2.0/16.0)},.. t3_dire_tower};
-	let t2_dire_top_tower = Tower{tier: 2, position: t3_dire_top_tower.position.alter_x(-MAX_COORD/4.), .. t3_dire_top_tower};
-	let t1_dire_top_tower = Tower{tier: 1, position: t2_dire_top_tower.position.alter_x(-MAX_COORD/4.), .. t2_dire_top_tower};
+	let t3_dire_top_tower = Tower{lane: Lane::Top, position: t3_dire_top_pos,.. t3_dire_tower};
+	let t2_dire_top_tower = Tower{tier: 2, position: Position{x: 256. * fudge, y: 78. * fudge}, .. t3_dire_top_tower};
+	let t1_dire_top_tower = Tower{tier: 1, position: Position{x: 109. * fudge, y: 85. * fudge}, .. t2_dire_top_tower};
 
-	let t3_dire_bot_tower = Tower{lane: Lane::Bot, position: Position{x: MAX_COORD - MAX_COORD/8., y: MAX_COORD*(6.0/16.0)},.. t3_dire_tower};
-	let t2_dire_bot_tower = Tower{tier: 2, position: t3_dire_bot_tower.position.alter_y(MAX_COORD/6.), .. t3_dire_bot_tower};
-	let t1_dire_bot_tower = Tower{tier: 1, position: t2_dire_bot_tower.position.alter_y(MAX_COORD/6.), .. t2_dire_bot_tower};
+	let t3_dire_bot_tower = Tower{lane: Lane::Bot, position: t3_dire_bot_pos,.. t3_dire_tower};
+	let t2_dire_bot_tower = Tower{tier: 2, position: Position{x: t3_dire_bot_tower.position.x, y: 317. * fudge}, .. t3_dire_bot_tower};
+	let t1_dire_bot_tower = Tower{tier: 1, position: Position{x: t2_dire_bot_tower.position.x, y: 388. * fudge}, .. t2_dire_bot_tower};
 
 	let radiant_fount = Fountain{gold: 0., attack_damage: 300., range: 30., hp: 9999., attack_cooldown: 1.3, attack_rate: 1.3, can_action: true,//test with multiple of so get 0
-		 position: Position{x: (MAX_COORD/16.7).round(), y:(MAX_COORD - (MAX_COORD/16.7)).round()}};
+		 position: Position{x: 37. * fudge, y: 567. * fudge}};
 
-	let dire_fount = Fountain{position: radiant_fount.position.swap_x_y(), .. radiant_fount};
+	let dire_fount = Fountain{position: Position{x: 558. * fudge, y: 69. * fudge}, .. radiant_fount};
 
 	let radiant_throne = Throne{max_hp: 1000., hp: 1000.,
-		 position: Position{x: 2.3*MAX_COORD/16.7, y:MAX_COORD - (2.3*MAX_COORD/16.7)}};
+		 position: Position{x: 88. * fudge, y: 508. * fudge}};
 
-	let dire_throne = Throne{position: radiant_throne.position.swap_x_y(), .. radiant_throne};
+	let dire_throne = Throne{position: Position{x: 506. * fudge, y: 122. * fudge}, .. radiant_throne};
 
     //Hmmm cant iterate over enums on stable
     let decisions: HashMap<Action, f32> = hashmap!(
@@ -338,7 +347,16 @@ fn main() {
         FarmFriendlyJungle => 0.,
         FarmEnemyJungle => 0.,
         FarmFriendlyAncients => 0.,
-        FarmEnemyAncients => 0.
+        FarmEnemyAncients => 0.,
+        GetRuneTop => 0.,
+        GetRuneBot => 0.,
+        PullEasy => 0.,
+        GetXpTop => 0.,
+        GetXpMid => 0.,
+        GetXpBot => 0.,
+        ZoneBot => 0.,
+        ZoneTop => 0.,
+        ZoneMid => 0.
         );
 
     let rubick_decision = PullEasy;
@@ -394,7 +412,7 @@ fn main() {
                     side: Side::Radiant,
                     priority: 5,
                     xp: 0.0,
-                    should_change_decision: false,
+                    should_change_decision: false, // so it switches to laning decision at game start
                     attacked_by_tower: false,
 		};
 
@@ -455,7 +473,7 @@ fn main() {
         FiveManMid => 0.,
         FourManAttackTower => 0.,
         GankEnemyJungle => 0.,
-        StandardLaning => 0.,
+        StandardLaning => 1.,
         AggroLaning => 0.,
         DualLaningOff => 0.,
         DualLaningMid => 0.,
@@ -467,18 +485,18 @@ fn main() {
 		fountain: radiant_fount, throne: radiant_throne, lane_creeps: vec!(),
          heroes: [rubick, enigma, alchemist, ta, batrider],
          neutrals: radiant_neutrals,
-         current_decision: TeamAction::IndividualChoice,
+         current_decision: TeamAction::StandardLaning,
          decisions: team_decisions.clone(),
-         should_change_decision: false
+         should_change_decision: true
      };
 
 	let dire = Team{side: Side::Dire, towers: vec!(tower, t2_dire_tower, t3_dire_tower, t1_dire_top_tower, t2_dire_top_tower,
 		 t3_dire_top_tower, t1_dire_bot_tower, t2_dire_bot_tower, t3_dire_bot_tower),
 		fountain: dire_fount, throne: dire_throne, lane_creeps: vec!(), heroes: [io, cm, ck, np, puck],
         neutrals: dire_neutrals,
-        current_decision: TeamAction::IndividualChoice,
+        current_decision: TeamAction::StandardLaning,
         decisions: team_decisions.clone(),
-        should_change_decision: false
+        should_change_decision: true,
     };
 
     let creep_clash_initial = CreepClashPositions{top_clash: Position{x: 70., y: 122.},
@@ -497,12 +515,10 @@ fn main() {
     //let game_snapshot = game.clone();
 
 	'outer: loop {
-		if game.game_tick % 280 == 0 || game.game_tick == 0{
+        // is there a nicer way to do this if?
+        // i think this go scary. if change speed as creeps spawning miss the spawn?
+		if game.game_tick == 0 || game.game_time != 0 && game.game_time % 30 == 0 && game.game_tick % game.time_to_tick == 0{
 			for _ in 1..5{
-				let mut position = Position{
-						x: MAX_COORD / 8.,
-						y: MAX_COORD*(7.0/8.0)
-						};
 				let new_radiant_top_creep = Creep{
 					lane: Lane::Top,
 					hp: 550.,
@@ -515,18 +531,18 @@ fn main() {
 					velocity: Velocity{x: 0., y: -1.},
 					range: 12.,
                     move_speed: 325.,
-					position: position.small_random_pos_offset(),
+					position: t3_rad_top_pos.small_random_pos_offset(),
                     gold: 0.,
 				};
-				let new_radiant_bot_creep = Creep{lane: Lane::Bot, position: position.small_random_pos_offset(),
+				let new_radiant_bot_creep = Creep{lane: Lane::Bot, position: t3_rad_bot_pos.small_random_pos_offset(),
 					 velocity: Velocity{x: 1., y: 0.}, .. new_radiant_top_creep};
-				let new_radiant_mid_creep = Creep{lane: Lane::Mid, position: position.small_random_pos_offset(),
+				let new_radiant_mid_creep = Creep{lane: Lane::Mid, position: t3_rad_mid_pos.small_random_pos_offset(),
 					velocity: Velocity{x: 1., y: -1.}, .. new_radiant_top_creep};
-				let new_dire_top_creep = Creep{position: position.swap_x_y().small_random_pos_offset(),
+				let new_dire_top_creep = Creep{position: t3_dire_top_pos.alter_y(-20.).small_random_pos_offset(),
 					 attack_damage: 19., velocity: Velocity{x: -1., y: 0.}, .. new_radiant_top_creep};
-				let new_dire_bot_creep = Creep{lane: Lane::Bot, position: position.swap_x_y().small_random_pos_offset(),
+				let new_dire_bot_creep = Creep{lane: Lane::Bot, position: t3_dire_bot_pos.small_random_pos_offset(),
 					velocity: Velocity{x: 0., y: 1.}, .. new_dire_top_creep};
-				let new_dire_mid_creep = Creep{lane: Lane::Mid, position: position.swap_x_y().small_random_pos_offset(),
+				let new_dire_mid_creep = Creep{lane: Lane::Mid, position: t3_dire_mid_pos.alter_y(-10.).small_random_pos_offset(),
 					velocity: Velocity{x: -1., y: 1.}, .. new_dire_top_creep};
 				game.teams[0].lane_creeps.push(new_radiant_top_creep);
 				game.teams[0].lane_creeps.push(new_radiant_bot_creep);
@@ -588,26 +604,21 @@ fn main() {
             }
 
             // team level decision changes
-            let team_change_decision = us.should_change_team_decision(game.game_time);
-            if team_change_decision{
+            if us.should_change_team_decision(game.game_time, game.game_tick){
                 us.change_decision();
                 us.process_team_decision();
-            };
-
-            // Looping twice cos might be sensible to let all hero actions finish before updating decisions
-            for hero in &mut us.heroes{
-                // individual hero level decision changes
-                hero.should_change_decision = hero.should_change_decision(us.fountain.position, game.game_tick, &our_friends);
-                if hero.should_change_decision || team_change_decision{
+                for hero in &mut us.heroes{
                     hero.change_decision();
                 }
-            }
+            };
         };
+        { // these brackets are so the below borrow of teams dies by time get to kill_off_creeps
+            let (rad, dire) = game.teams.split_at_mut(1);
+    		rad[0].move_creeps_radiant(&dire[0].lane_creeps, &game.time_to_tick);
+    		dire[0].move_creeps_dire(&game.time_to_tick);
+        }
 
-		game.teams[0].move_creeps_radiant(&game.time_to_tick);
-		game.teams[1].move_creeps_dire(&game.time_to_tick);
-
-        game.reset_all_attack_cooldown();
+        //game.reset_all_attack_cooldown(); means we dont display the tower attacking
 		game.kill_off_creeps();
 		game.kill_off_heroes();
         game.kill_off_towers();
@@ -633,6 +644,8 @@ fn main() {
 				break 'outer;
 			}
 		};
+
+        game.reset_all_attack_cooldown();
 		game.game_tick += 1;
         if game.game_tick % game.time_to_tick == 0{
             game.game_time += 1

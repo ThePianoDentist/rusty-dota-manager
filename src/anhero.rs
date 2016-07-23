@@ -374,6 +374,25 @@ impl MoveHero for Hero{
 	}
 }
 
+pub trait ClosestEnemyHero{
+	fn closest_enemy_hero<'a>(&self, enemy_heroes: &'a mut [Hero; 5]) -> Option<&'a mut Hero>;
+}
+
+impl ClosestEnemyHero for Hero{
+	fn closest_enemy_hero<'a>(&self, enemy_heroes: &'a mut [Hero; 5]) -> Option<&'a mut Hero>{
+		let mut hero_diff = None;
+		let mut closest_hero = None;
+		for hero in enemy_heroes.iter_mut(){
+			let distance = self.position.distance_between(hero.position);
+			if distance < hero_diff.unwrap_or(9001.){
+				closest_hero = Some(hero);
+				hero_diff.map(|distance| distance); //is using map like this better than just Some()?
+			}
+		}
+		closest_hero
+	}
+}
+
 pub trait Farm{
     fn farm_lane(&mut self, Lane, &mut Vec<Creep>, &mut Vec<Creep>, &mut Vec<Tower>);
 	fn farm_jungle(&mut self, &mut HashMap<&'static str, NeutralCamp>);
@@ -422,13 +441,16 @@ impl Farm for Hero{
 				_ => {},
 			}
 		}
-		if closest_camp.is_some(){
-			if distance_from > self.range{
-				self.move_directly_to(&closest_camp.unwrap().position);
-			}
-			else{
-				self.attack_neutral(closest_camp.unwrap());
-			}
+		match closest_camp{
+			Some(camp) => {
+				if distance_from > self.range{
+					self.move_directly_to(&camp.position);
+					}
+					else{
+						self.attack_neutral(camp);
+					}
+				},
+			None => {self.should_change_decision = true; self.update_decision_prob(Action::FarmFriendlyJungle, 0.)}
 		}
 	}
 
@@ -515,20 +537,14 @@ pub trait Follow{
 
 impl Follow for Hero{
 	fn follow_hero(&mut self, friend: &HeroInfo, enemy_heroes: &mut [Hero; 5]){
-		let mut lowest_distance: f32 = 9001.;
-		for hero in enemy_heroes.iter_mut(){
-			let distance_to = self.position.distance_between(hero.position);
-			if distance_to < lowest_distance{
-				match self.position.distance_between(hero.position){
-					x if x < self.range => self.attack_hero(hero),
-					x if x < 80. => self.move_directly_to(&hero.position), // maybe make this dynamic?
-					_ => {}
-				}
-				lowest_distance = distance_to;
+		let closest_enemy_hero = self.closest_enemy_hero(enemy_heroes);
+		if closest_enemy_hero.is_some(){
+			let closest_hero = closest_enemy_hero.unwrap();
+			match self.position.distance_between(closest_hero.position){
+				x if x < self.range => self.attack_hero(closest_hero),
+				x if x < 80. => self.move_directly_to(&closest_hero.position), // maybe make this dynamic?
+				_ => self.move_defensively_to(&friend.position)
 			}
-		}
-		if lowest_distance == 9001.{ // should probably replace memes with quality code at some point
-			self.move_defensively_to(&friend.position);
 		}
 	}
 }
@@ -540,27 +556,29 @@ pub trait Pull{
 impl Pull for Hero{
 	fn pull_easy(&mut self, camps: &mut HashMap<&'static str, NeutralCamp>, side: Side){
 		let mut easy_camp = camps.get_mut("easy_camp").unwrap();
-		if easy_camp.aggro_position.is_none(){
-			if self.position.distance_between(easy_camp.position) > self.range{
-				// so we need to not aggro the camp, until timing is right to pull to creeps
-				self.move_directly_to(&easy_camp.position);
-			}
-			else{
-				if easy_camp.position == easy_camp.home_position{
-					let pull_position = match side{
-						Side::Dire => Position{x: 176., y: 90.},
-						Side::Radiant => Position{x: 451., y: 537.}
-					};
-					easy_camp.aggro_position = Some(pull_position);
+		match easy_camp.hp{
+			hp if hp > 0. => {
+				if easy_camp.aggro_position.is_none(){
+					if self.position.distance_between(easy_camp.position) > self.range{
+						// so we need to not aggro the camp, until timing is right to pull to creeps
+						self.move_directly_to(&easy_camp.position);
+					}
+					else{
+						if easy_camp.position == easy_camp.home_position{
+							let pull_position = match side{
+								Side::Dire => Position{x: 176., y: 90.},
+								Side::Radiant => Position{x: 451., y: 537.}
+							};
+							easy_camp.aggro_position = Some(pull_position);
+						}
+					}
 				}
-			}
+				else{
+					self.move_directly_to(&easy_camp.aggro_position.unwrap());
+				};
+			},
+			_ => {self.should_change_decision = true}
 		}
-		else{
-			match side{
-				Side::Dire => self.position.y -= 1.,
-				Side::Radiant => self.position.y += 1.,
-			}
-		};
 	}
 }
 
@@ -572,14 +590,14 @@ impl GetXp for Hero{
 	// Should only need to be within xp range - attack range creeps
 	// might be bug where we lose some xp for slightly further away, maybe get bit closer
 	// may need rewriting once have ranged creeps
-	fn get_xp(&mut self, lane: Lane, our_creeps: &Vec<Creep>, xp_range: &f32, fountain_position: &Position){
-		let front_creep = our_creeps.into_iter().filter(|&x| x.lane == lane).collect::<Vec<&Creep>>();
+	fn get_xp(&mut self, lane: Lane, enemy_creeps: &Vec<Creep>, xp_range: &f32, fountain_position: &Position){
+		let front_creep = enemy_creeps.into_iter().filter(|&x| x.lane == lane).collect::<Vec<&Creep>>();
 		if front_creep.len() > 1{
 			let creep = &front_creep[0];
 			match self.position.distance_between(creep.position){
-				x if x > xp_range - creep.range => self.move_directly_to(&creep.position),
+				x if x > *xp_range => self.move_directly_to(&creep.position),
 				// if under xp range maybe play safe and run back
-				x if x < xp_range - creep.range => self.move_directly_to(fountain_position),
+				x if x < *xp_range => self.move_directly_to(fountain_position),
 				_ => {}
 			}
 		}
