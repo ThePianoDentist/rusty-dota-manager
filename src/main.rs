@@ -615,7 +615,7 @@ fn main() {
         { // these brackets are so the below borrow of teams dies by time get to kill_off_creeps
             let (rad, dire) = game.teams.split_at_mut(1);
     		rad[0].move_creeps_radiant(&dire[0].lane_creeps, &game.time_to_tick);
-    		dire[0].move_creeps_dire(&game.time_to_tick);
+    		dire[0].move_creeps_dire(&rad[0].lane_creeps, &game.time_to_tick);
         }
 
         //game.reset_all_attack_cooldown(); means we dont display the tower attacking

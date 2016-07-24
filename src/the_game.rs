@@ -342,25 +342,48 @@ macro_rules! impl_Travel{
 impl_Travel!(Hero);
 impl_Travel!(Creep);
 
+fn closest_creep_position(lane: Lane, creeps: &Vec<Creep>) -> Option<Position>{
+	let closest_creeps = creeps.clone().into_iter().
+		filter(|&x| x.lane == lane).collect::<Vec<Creep>>();
+	let closest_creep_pos = match closest_creeps.len(){
+		0 => None,
+		_ => Some(closest_creeps[0].position)
+	};
+	closest_creep_pos
+}
+
 pub trait MoveDownLane{
-	fn move_top_creep_radiant(&mut self, time_to_tick: &u64);
-	fn move_mid_creep_radiant(&mut self, time_to_tick: &u64);
+	fn move_top_creep_radiant(&mut self, enemy_creeps: &Vec<Creep>, time_to_tick: &u64);
+	fn move_mid_creep_radiant(&mut self, enemy_creeps: &Vec<Creep>, time_to_tick: &u64);
 	fn move_bot_creep_radiant(&mut self, &NeutralCamp, &Vec<Creep>, ime_to_tick: &u64);
-	fn move_top_creep_dire(&mut self, easy_camp: &NeutralCamp, time_to_tick: &u64);
-	fn move_mid_creep_dire(&mut self, time_to_tick: &u64);
-	fn move_bot_creep_dire(&mut self, time_to_tick: &u64);
+	fn move_top_creep_dire(&mut self, easy_camp: &NeutralCamp, enemy_creeps: &Vec<Creep>, time_to_tick: &u64);
+	fn move_mid_creep_dire(&mut self, enemy_creeps: &Vec<Creep>, time_to_tick: &u64);
+	fn move_bot_creep_dire(&mut self, enemy_creeps: &Vec<Creep>, time_to_tick: &u64);
 }
 
 impl MoveDownLane for Creep{
-	fn move_top_creep_radiant(&mut self, time_to_tick: &u64){
+	fn move_top_creep_radiant(&mut self, enemy_creeps: &Vec<Creep>, time_to_tick: &u64){
+		// maybe I should be changing velocity before travelling. would make sense.
 		self.travel(time_to_tick);
-		if self.position.small_random_pos_offset().y < (MAX_COORD / 8.){
-			self.velocity = Velocity{x: 1., y: 0.};
-		}
+
+		let closest_creep_pos = closest_creep_position(self.lane, enemy_creeps);
+		self.velocity = match (self.position.small_random_pos_offset().y, closest_creep_pos){
+			(_, b) if b.is_some() && self.position.distance_between(b.unwrap()) < 50. =>
+				self.position.velocity_to(b.unwrap()),
+			(a, _) if a < (MAX_COORD / 8.) => Velocity{x: 1., y: 0.},
+			_ => Velocity{x: 0., y: -1.}
+		};
 	}
 
-	fn move_mid_creep_radiant(&mut self, time_to_tick: &u64){
+	fn move_mid_creep_radiant(&mut self, enemy_creeps: &Vec<Creep>, time_to_tick: &u64){
 		self.travel(time_to_tick);
+
+		let closest_creep_pos = closest_creep_position(self.lane, enemy_creeps);
+		self.velocity = match closest_creep_pos{
+			a if a.is_some() && self.position.distance_between(a.unwrap()) < 50. =>
+				self.position.velocity_to(a.unwrap()),
+			_ => Velocity{x: 1., y: -1.}
+		};
 	}
 
 	fn move_bot_creep_radiant(&mut self, easy_camp: &NeutralCamp, enemy_creeps: &Vec<Creep>, time_to_tick: &u64){
@@ -370,36 +393,39 @@ impl MoveDownLane for Creep{
 		let ez_dist = self.position.distance_between(easy_camp.position);
 		// so im computing this even when not doing, maybe move into the match?
 		let to_camp_velocity = self.position.velocity_to(easy_camp.position);
-		let closest_creeps = enemy_creeps.clone().into_iter().
-			filter(|&x| x.lane == self.lane).collect::<Vec<Creep>>();
-		let mut closest_creep_pos = None;
-		if closest_creeps.len() > 0{  // must be a nicer way
-			closest_creep_pos = Some(closest_creeps[0].position);
-
-		}
+		let closest_creep_pos = closest_creep_position(self.lane, enemy_creeps);
 		self.velocity = match (ez_dist, self.position.small_random_pos_offset().x, closest_creep_pos){
-			(_, _, c) if self.position.distance_between(closest_creep_pos.unwrap()) < 50. => {self.position.velocity_to(closest_creep_pos.unwrap())}
+			(_, _, c) if c.is_some() && self.position.distance_between(c.unwrap()) < 50. =>
+			 self.position.velocity_to(c.unwrap()),
 			(a, _, _) if a < 30. => to_camp_velocity,
 			(_, b, _) if b > MAX_COORD *(8.0/9.0) => Velocity{x: 0.0, y: -1.0},
 			_ => Velocity{x: 1., y: 0.}
 		};
 	}
 
-	fn move_mid_creep_dire(&mut self, time_to_tick: &u64){
+	fn move_mid_creep_dire(&mut self, enemy_creeps: &Vec<Creep>, time_to_tick: &u64){
+		let closest_creep_pos = closest_creep_position(self.lane, enemy_creeps);
+		self.velocity = match closest_creep_pos{
+			a if a.is_some() && self.position.distance_between(a.unwrap()) < 50. =>
+				self.position.velocity_to(a.unwrap()),
+			_ => Velocity{x: -1., y: 1.}
+		};
+
 		self.travel(time_to_tick);
 	}
 
-	fn move_bot_creep_dire(&mut self, time_to_tick: &u64){
+	fn move_bot_creep_dire(&mut self, enemy_creeps: &Vec<Creep>, time_to_tick: &u64){
+		let closest_creep_pos = closest_creep_position(self.lane, enemy_creeps);
+		self.velocity = match (self.position.small_random_pos_offset().y, closest_creep_pos){
+			(_, b) if b.is_some() && self.position.distance_between(b.unwrap()) < 50. =>
+				self.position.velocity_to(b.unwrap()),
+			(a, _) if a > MAX_COORD *(7.0/8.0) => Velocity{x: -1.0, y: 0.0},
+			_ => Velocity{x: 0., y: 1.}
+		};
 		self.travel(time_to_tick);
-		if self.position.y > MAX_COORD *(7.0/8.0){
-			self.velocity = Velocity{x: -1.0, y: 0.0};
-		}
 	}
 
-	fn move_top_creep_dire(&mut self, easy_camp: &NeutralCamp, time_to_tick: &u64){
-		self.travel(time_to_tick);
-
-		// check if should follow pull
+	fn move_top_creep_dire(&mut self, easy_camp: &NeutralCamp, enemy_creeps: &Vec<Creep>, time_to_tick: &u64){
 		let ez_dist = self.position.distance_between(easy_camp.position);
 		let to_camp_velocity = self.position.velocity_to(easy_camp.position);
 		self.velocity = match (ez_dist, self.position.small_random_pos_offset().x){
@@ -407,12 +433,14 @@ impl MoveDownLane for Creep{
 			(_, b) if b < MAX_COORD / 8.0 => Velocity{x: 0.0, y: 1.0},
 			_ => Velocity{x: -1.0, y: 0.}
 		};
+
+		self.travel(time_to_tick);
 	}
 }
 
 pub trait MoveCreeps{
 	fn move_creeps_radiant(&mut self, &Vec<Creep>, time_to_tick: &u64);
-	fn move_creeps_dire(&mut self, time_to_tick: &u64);
+	fn move_creeps_dire(&mut self, enemy_creeps: &Vec<Creep>, time_to_tick: &u64);
 }
 
 impl MoveCreeps for Team{
@@ -421,22 +449,22 @@ impl MoveCreeps for Team{
 		for lane_creep in &mut self.lane_creeps{
 			if lane_creep.can_action{
 				match lane_creep.lane{
-					Lane::Top => lane_creep.move_top_creep_radiant(time_to_tick),
-					Lane::Mid => lane_creep.move_mid_creep_radiant(time_to_tick),
+					Lane::Top => lane_creep.move_top_creep_radiant(enemy_creeps, time_to_tick),
+					Lane::Mid => lane_creep.move_mid_creep_radiant(enemy_creeps, time_to_tick),
 					Lane::Bot => lane_creep.move_bot_creep_radiant(easy_camp, enemy_creeps, time_to_tick),
 				};
 			}
 		}
 	}
 
-	fn move_creeps_dire(&mut self, time_to_tick: &u64){
+	fn move_creeps_dire(&mut self, enemy_creeps: &Vec<Creep>, time_to_tick: &u64){
 		let easy_camp = self.neutrals.get("easy_camp").unwrap();
 		for lane_creep in &mut self.lane_creeps{
 			if lane_creep.can_action{
 				match lane_creep.lane{
-					Lane::Top => lane_creep.move_top_creep_dire(easy_camp, time_to_tick),
-					Lane::Mid => lane_creep.move_mid_creep_dire(time_to_tick),
-					Lane::Bot => lane_creep.move_bot_creep_dire(time_to_tick),
+					Lane::Top => lane_creep.move_top_creep_dire(easy_camp, enemy_creeps, time_to_tick),
+					Lane::Mid => lane_creep.move_mid_creep_dire(enemy_creeps, time_to_tick),
+					Lane::Bot => lane_creep.move_bot_creep_dire(enemy_creeps, time_to_tick),
 				};
 			}
 		}
