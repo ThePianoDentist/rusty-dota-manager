@@ -266,35 +266,27 @@ pub trait ChangeDecision{
     fn change_decision(&mut self);
 }
 
-impl ChangeDecision for Hero{
-    fn change_decision(&mut self){
-        self.should_change_decision = false;
-        let rand_num = rand::thread_rng().gen_range(1, 101) as f32 / 100.;
-        let mut prob_counter = 0.0;
-        for (action, prob) in &mut self.decisions.iter(){
-            prob_counter += *prob;
-            match prob_counter{
-                p if rand_num > p => {},
-                _ => {println!("{}: {:?}", self.name, action); self.current_decision = *action; break},
+macro_rules! impl_ChangeDecision{
+    ($T: ty, $M: ident) =>
+    {
+        impl ChangeDecision for $T{
+            fn change_decision(&mut self){
+                self.should_change_decision = false;
+                let rand_num = rand::thread_rng().gen_range(1, 101) as f32 / 100.;
+                let mut prob_counter = 0.0;
+                for (action, prob) in &mut self.decisions.iter(){
+                    prob_counter += *prob;
+                    match prob_counter{
+                        p if rand_num > p => {},
+                        _ => {println!("{:?}: {:?}", self.$M, action); self.current_decision = *action; break},
+                    }
+                }
             }
         }
     }
 }
-
-impl ChangeDecision for Team{
-    fn change_decision(&mut self){
-        self.should_change_decision = false;
-        let rand_num = rand::thread_rng().gen_range(1, 101) as f32 / 100.;
-        let mut prob_counter = 0.0;
-        for (action, prob) in &mut self.decisions.iter(){
-            prob_counter += *prob;
-            match prob_counter{
-                p if rand_num > p => {},
-                _ => {println!("{:?}: {:?}", self.side, action); self.current_decision = *action; break},
-            }
-        }
-    }
-}
+impl_ChangeDecision!(Team, side);
+impl_ChangeDecision!(Hero, name);
 
 pub trait Decisions{
     fn process_decision(&mut self, Side, &CreepClashPositions, &f32, &mut Vec<Creep>, &mut Vec<Creep>, &mut Vec<Tower>, &Vec<Tower>, &mut [Hero; 5],

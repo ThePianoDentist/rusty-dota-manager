@@ -646,6 +646,7 @@ fn main() {
 		};
 
         game.reset_all_attack_cooldown();
+        // game speed shouldnt be attached to framerate. but meh, if its good enough for fallout4
 		game.game_tick += 1;
         if game.game_tick % game.time_to_tick == 0{
             game.game_time += 1
