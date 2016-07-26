@@ -110,7 +110,7 @@ impl TeamDecisions for Team{
     fn should_change_team_decision(&mut self, game_time: u64, game_tick: u64) -> bool{
         let mut change = self.should_change_decision;
         if !change{
-            if game_time == 70{
+            if game_time == 400{
                 if self.side == Side::Radiant{
                 self.update_decision_prob(TeamAction::FiveManTop, 1.0);
                 }
@@ -126,7 +126,8 @@ impl TeamDecisions for Team{
             // individual hero level decision changes
             let hero_decision = hero.should_change_decision(fountain_pos, game_tick, &our_friends);
             if hero_decision{
-                change = true;
+                hero.change_decision();
+                //change = true;
             }
         }
         change
@@ -230,11 +231,16 @@ impl TeamDecisions for Team{
     }
 
     fn standard_lanes(&mut self){
+        let (safelane, offlane) = (self.safelane(), self.offlane());
+        let zone_action = match safelane{
+            Lane::Bot => Action::ZoneBot,
+            _ => Action::ZoneTop,
+        };
         let (action_safelane, action_offlane) = self.farmsafe_xpoff();
         for hero in self.heroes.iter_mut(){
             match hero.priority{
                 5 => hero.update_decision_prob(Action::FollowHeroOne, 1.),
-                4 => {hero.update_decision_prob(Action::FollowHeroOne, 1.); hero.update_decision_prob(Action::PullEasy, 0.5)},
+                4 => hero.update_multi_decision_prob(vec!((Action::FollowHeroOne, 0.33), (Action::PullEasy, 0.33), (zone_action, 0.33))),
                 3 => hero.update_decision_prob(action_offlane, 1.),
                 2 => hero.update_decision_prob(Action::FarmMidLane, 1.),
                 _ => hero.update_decision_prob(action_safelane, 1.),
@@ -292,7 +298,8 @@ impl ChangeDecision for Team{
 
 pub trait Decisions{
     fn process_decision(&mut self, Side, &CreepClashPositions, &f32, &mut Vec<Creep>, &mut Vec<Creep>, &mut Vec<Tower>, &Vec<Tower>, &mut [Hero; 5],
-        &Vec<HeroInfo>, &mut HashMap<&'static str, NeutralCamp>, &mut HashMap<&'static str, NeutralCamp>,Position);
+        &Vec<HeroInfo>, &mut HashMap<&'static str, NeutralCamp>, &mut HashMap<&'static str, NeutralCamp>,Position,
+    time_to_tick: &u64);
 
     fn should_change_decision(&mut self, Position, u64, our_friends: &Vec<HeroInfo>) -> bool;
 
@@ -315,37 +322,40 @@ impl Decisions for Hero{
         our_creeps: &mut Vec<Creep>, their_creeps: &mut Vec<Creep>, their_towers: &mut Vec<Tower>,
     our_towers: &Vec<Tower>, their_heroes: &mut [Hero; 5], our_friends: &Vec<HeroInfo>,
      our_neutrals: &mut HashMap<&'static str, NeutralCamp>, their_neutrals: &mut HashMap<&'static str, NeutralCamp>,
-      fountain_position: Position){
+      fountain_position: Position, time_to_tick: &u64){
         let friend_one = our_friends.into_iter().filter(|&x| x.priority == 1).collect::<Vec<&HeroInfo>>()[0];
         let friend_two = our_friends.into_iter().filter(|&x| x.priority == 2).collect::<Vec<&HeroInfo>>()[0];
         let friend_three = our_friends.into_iter().filter(|&x| x.priority == 3).collect::<Vec<&HeroInfo>>()[0];
         let friend_four = our_friends.into_iter().filter(|&x| x.priority == 4).collect::<Vec<&HeroInfo>>()[0];
         let friend_five = our_friends.into_iter().filter(|&x| x.priority == 5).collect::<Vec<&HeroInfo>>()[0];
         match self.current_decision{
-            Action::FarmTopLane => self.farm_lane(Lane::Top, our_creeps, their_creeps, their_towers),
-            Action::FarmMidLane => self.farm_lane(Lane::Mid, our_creeps, their_creeps, their_towers),
-            Action::FarmBotLane => self.farm_lane(Lane::Bot, our_creeps, their_creeps, their_towers),
-            Action::MoveToFountain => self.move_directly_to(&fountain_position),
-            Action::DefendTopTower => self.move_to_defend_tower(Lane::Top, our_towers),
-            Action::DefendMidTower => self.move_to_defend_tower(Lane::Mid, our_towers),
-            Action::DefendBotTower => self.move_to_defend_tower(Lane::Bot, our_towers),
-            Action::GankTop => self.gank_lane(Lane::Top, their_creeps, their_heroes, their_towers, creep_clash_pos),
-            Action::GankMid => self.gank_lane(Lane::Mid, their_creeps, their_heroes, their_towers, creep_clash_pos),
-            Action::GankBot => self.gank_lane(Lane::Bot, their_creeps, their_heroes, their_towers, creep_clash_pos),
-            Action::FollowHeroOne => self.follow_hero(friend_one, their_heroes),
-            Action::FollowHeroTwo => self.follow_hero(friend_two, their_heroes),
-            Action::FollowHeroThree => self.follow_hero(friend_three, their_heroes),
-            Action::FollowHeroFour => self.follow_hero(friend_four, their_heroes),
-            Action::FollowHeroFive => self.follow_hero(friend_five, their_heroes),
-            Action::FarmFriendlyJungle => self.farm_jungle(our_neutrals),
-            Action::FarmEnemyJungle => self.farm_jungle(their_neutrals),
-            Action::FarmFriendlyAncients => self.farm_ancients(our_neutrals),
-            Action::FarmEnemyAncients => self.farm_ancients(their_neutrals),
-            Action::PullEasy => self.pull_easy(our_neutrals, side),
-            Action::GetXpTop => self.get_xp(Lane::Top, &their_creeps, xp_range, &fountain_position),
-            Action::GetXpMid => self.get_xp(Lane::Mid, &their_creeps, xp_range, &fountain_position),
-            Action::GetXpBot => self.get_xp(Lane::Bot, &their_creeps, xp_range, &fountain_position),
-            _ => {println!("dude wgtf"); self.farm_lane(Lane::Top, our_creeps, their_creeps, their_towers)}
+            Action::FarmTopLane => self.farm_lane(Lane::Top, our_creeps, their_creeps, their_towers, time_to_tick),
+            Action::FarmMidLane => self.farm_lane(Lane::Mid, our_creeps, their_creeps, their_towers, time_to_tick),
+            Action::FarmBotLane => self.farm_lane(Lane::Bot, our_creeps, their_creeps, their_towers, time_to_tick),
+            Action::MoveToFountain => self.move_directly_to(&fountain_position, time_to_tick),
+            Action::DefendTopTower => self.move_to_defend_tower(Lane::Top, our_towers, time_to_tick),
+            Action::DefendMidTower => self.move_to_defend_tower(Lane::Mid, our_towers, time_to_tick),
+            Action::DefendBotTower => self.move_to_defend_tower(Lane::Bot, our_towers, time_to_tick),
+            Action::GankTop => self.gank_lane(Lane::Top, their_creeps, their_heroes, their_towers, creep_clash_pos, time_to_tick),
+            Action::GankMid => self.gank_lane(Lane::Mid, their_creeps, their_heroes, their_towers, creep_clash_pos, time_to_tick),
+            Action::GankBot => self.gank_lane(Lane::Bot, their_creeps, their_heroes, their_towers, creep_clash_pos, time_to_tick),
+            Action::FollowHeroOne => self.follow_hero(friend_one, their_heroes, time_to_tick),
+            Action::FollowHeroTwo => self.follow_hero(friend_two, their_heroes, time_to_tick),
+            Action::FollowHeroThree => self.follow_hero(friend_three, their_heroes, time_to_tick),
+            Action::FollowHeroFour => self.follow_hero(friend_four, their_heroes, time_to_tick),
+            Action::FollowHeroFive => self.follow_hero(friend_five, their_heroes, time_to_tick),
+            Action::FarmFriendlyJungle => self.farm_jungle(our_neutrals, time_to_tick),
+            Action::FarmEnemyJungle => self.farm_jungle(their_neutrals, time_to_tick),
+            Action::FarmFriendlyAncients => self.farm_ancients(our_neutrals, time_to_tick),
+            Action::FarmEnemyAncients => self.farm_ancients(their_neutrals, time_to_tick),
+            Action::PullEasy => self.pull_easy(our_neutrals, side, time_to_tick),
+            Action::GetXpTop => self.get_xp(Lane::Top, &their_creeps, xp_range, &fountain_position, &creep_clash_pos, time_to_tick),
+            Action::GetXpMid => self.get_xp(Lane::Mid, &their_creeps, xp_range, &fountain_position, &creep_clash_pos, time_to_tick),
+            Action::GetXpBot => self.get_xp(Lane::Bot, &their_creeps, xp_range, &fountain_position, &creep_clash_pos, time_to_tick),
+            Action::ZoneTop => self.zone_out(Lane::Top, their_heroes, &our_creeps, xp_range, time_to_tick, &creep_clash_pos),
+            Action::ZoneMid => self.zone_out(Lane::Mid, their_heroes, &our_creeps, xp_range, time_to_tick, &creep_clash_pos),
+            Action::ZoneBot => self.zone_out(Lane::Bot, their_heroes, &our_creeps, xp_range, time_to_tick, &creep_clash_pos),
+            _ => {println!("dude wgtf"); self.farm_lane(Lane::Top, our_creeps, their_creeps, their_towers, time_to_tick)}
         };
     }
 
@@ -353,7 +363,7 @@ impl Decisions for Hero{
         if !self.should_change_decision{
             self.should_change_decision = self.check_if_should_heal();
         }
-        if !self.should_change_decision{
+        if !self.should_change_decision && self.position.distance_between(fountain_position) < 1.0{
             self.should_change_decision = self.check_if_healed_fountain(fountain_position, game_tick, our_friends);
         }
         self.should_change_decision
@@ -404,7 +414,7 @@ impl Decisions for Hero{
 
     fn check_if_healed_fountain(&mut self, fountain_position: Position, game_tick: u64, our_friends: &Vec<HeroInfo>) -> bool {
         //will there be a bug if fountain diving
-        if game_tick > 100 && self.position == fountain_position
+        if game_tick > 100 && self.position.distance_between(fountain_position) < 1.0
         && self.hp >= self.max_hp{
             //change team decision
             self.set_out_of_base_decisions(our_friends);

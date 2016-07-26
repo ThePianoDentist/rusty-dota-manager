@@ -191,7 +191,7 @@ impl<'a> App<'a>{
 		self.gl.draw(args.viewport(), |c, gl| {
 					let transform = c.transform.trans(0.0, 100.0);
 
-					clear(color::WHITE, gl);
+					//clear(color::WHITE, gl);
 					match *side{
 						Side::Dire => render_text(&mut face, gl, transform, "RADIANT VICTORY!"),
 						Side::Radiant => render_text(&mut face, gl, transform, "Dire VICTORY!")
@@ -207,7 +207,7 @@ fn main() {
     let opengl = OpenGL::V2_1;
 
     let mut window: PistonWindow = WindowSettings::new(
-            "ooooh-shit-the-absolute-madman-it's-a-dota-football-manager-ripoff-blobs-everywhere",
+            "dota manager blob simulator 2k18",
             [600, 700]
         )
         .opengl(opengl)
@@ -507,7 +507,7 @@ fn main() {
 		game_time: 0,
         time_to_tick: 40,
 		teams: [radiant, dire],
-        xp_range: 200.,
+        xp_range: 1300. * SCALE_FACTOR,
         commentary_string: "Navi vs Alliance".to_string(),
         creep_clash_positions: creep_clash_initial,
 	};
@@ -600,7 +600,7 @@ fn main() {
 
             for hero in &mut us.heroes{
                 hero.process_decision(us.side, &game.creep_clash_positions, &game.xp_range ,&mut us.lane_creeps, &mut them.lane_creeps, &mut them.towers, &us.towers,
-                    &mut them.heroes, &our_friends, &mut us.neutrals, &mut them.neutrals, us.fountain.position);
+                    &mut them.heroes, &our_friends, &mut us.neutrals, &mut them.neutrals, us.fountain.position, &game.time_to_tick);
             }
 
             // team level decision changes

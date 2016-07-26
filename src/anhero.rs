@@ -163,7 +163,7 @@ impl AttackCreepsHero for Hero{
 		}
 	}
 
-	fn attack_hero(&mut self, hero: &mut Hero){
+	fn (&mut self, hero: &mut Hero){
 		if self.position.distance_between(hero.position) < self.range && self.can_action{
 			self.can_action = false;
 			self.attack_cooldown -= 1.;
@@ -220,15 +220,15 @@ impl Stats for Hero{
 }
 
 trait MoveToAttackTower{
-	fn move_to_attack_tower(&mut self, &mut Vec<Tower>, Lane);
+	fn move_to_attack_tower(&mut self, &mut Vec<Tower>, Lane, time_to_tick: &u64);
 }
 
 impl MoveToAttackTower for Hero{
-	fn move_to_attack_tower(&mut self, towers: &mut Vec<Tower>, lane: Lane){
+	fn move_to_attack_tower(&mut self, towers: &mut Vec<Tower>, lane: Lane, time_to_tick: &u64){
 		// bugged until implement killing off of towers
 		let closest_tower = &towers.clone().into_iter().filter(|&x| x.lane == lane).collect::<Vec<Tower>>()[0];
 		if self.position.distance_between(closest_tower.position) > self.range{
-			self.move_directly_to(&closest_tower.position);
+			self.move_directly_to(&closest_tower.position, time_to_tick);
 		}
 		else{
 			self.attack_towers(towers);
@@ -240,15 +240,15 @@ impl MoveToAttackTower for Hero{
 pub trait MoveHero{
 	fn random_move(&mut self);
 
-	fn move_towards_creeps(&mut self, Lane, &Vec<Creep>);
+	fn move_towards_creeps(&mut self, Lane, &Vec<Creep>, time_to_tick: &u64);
 
-	fn move_directly_to_creep(&mut self, closest_creep: &Creep);
+	fn move_directly_to_creep(&mut self, closest_creep: &Creep, time_to_tick: &u64);
 
-	fn move_to_creep_along_lane(&mut self, creep: &Creep, correct_x: bool);
+	fn move_to_creep_along_lane(&mut self, creep: &Creep, correct_x: bool, time_to_tick: &u64);
 
-	fn move_directly_to(&mut self, position: &Position);
+	fn move_directly_to(&mut self, position: &Position, time_to_tick: &u64);
 
-	fn move_defensively_to(&mut self, position: &Position);
+	fn move_defensively_to(&mut self, position: &Position, time_to_tick: &u64);
 
 	//fn move_to_enemy_tower(&mute self, )
 }
@@ -272,12 +272,14 @@ impl MoveHero for Hero{
 		}
 	}
 
-	fn move_directly_to_creep(&mut self, closest_creep: &Creep){
-		self.move_directly_to(&closest_creep.position);
+	fn move_directly_to_creep(&mut self, closest_creep: &Creep, time_to_tick: &u64){
+		self.move_directly_to(&closest_creep.position, time_to_tick);
 	}
 
-    fn move_directly_to(&mut self, position: &Position){
-		let (x_diff, y_diff) = (self.position.x - position.x,
+    fn move_directly_to(&mut self, position: &Position, time_to_tick: &u64){
+		self.velocity = self.position.velocity_to(*position);
+		self.travel(time_to_tick);
+		/*let (x_diff, y_diff) = (self.position.x - position.x,
 								self.position.y - position.y);
 
 		self.position.x = match x_diff{
@@ -290,11 +292,11 @@ impl MoveHero for Hero{
 			y if y > 0. => self.position.y - 1.,
 			y if y < 0. => self.position.y + 1.,
 			_ => self.position.y // must be 0, in line with
-		};
+		};*/
 	}
 
 	// Basically move to location but just their own fountain side so in defensive position
-	fn move_defensively_to(&mut self, position: &Position){
+	fn move_defensively_to(&mut self, position: &Position, time_to_tick: &u64){
 		let our_fountain_pos = match self.side{
 			Side::Radiant => RADIANT_FOUNT_POS,
 			Side::Dire => DIRE_FOUNT_POS,
@@ -304,16 +306,16 @@ impl MoveHero for Hero{
 		offset_position.add_x(-(x_diff/x_diff.abs()) * 15. *x_diff.abs()/(x_diff.abs() + y_diff.abs()));
 		offset_position.add_y(-(y_diff/y_diff.abs()) * 15. *y_diff.abs()/(y_diff.abs() + x_diff.abs()));
 		if self.position.distance_between(offset_position) > 6.{
-			self.move_directly_to(&offset_position);
+			self.move_directly_to(&offset_position, time_to_tick);
 		}
 	}
 
-	fn move_to_creep_along_lane(&mut self, creep: &Creep, correct_x: bool){
+	fn move_to_creep_along_lane(&mut self, creep: &Creep, correct_x: bool, time_to_tick: &u64){
 		let (xdiff, ydiff) = (self.position.x_distance(creep.position), self.position.y_distance(creep.position));
 		if correct_x{
 			match xdiff{
 				x if x <= 10. => {
-					self.move_directly_to_creep(creep)
+					self.move_directly_to_creep(creep, time_to_tick)
 				},
 				_ => match ydiff{
 					y if y<= 10. => {
@@ -331,7 +333,7 @@ impl MoveHero for Hero{
 		else{
 			match self.position.y_distance(creep.position){
 				y if y <= 10. => {
-					self.move_directly_to_creep(creep);
+					self.move_directly_to_creep(creep, time_to_tick);
 				},
 				_ => {
 					self.position.x += creep.velocity.y;
@@ -342,7 +344,7 @@ impl MoveHero for Hero{
 	}
 
 	// assume first creep in vector is in first wave so closest. yolo
-	fn move_towards_creeps(&mut self, lane: Lane, lane_creeps: &Vec<Creep>){
+	fn move_towards_creeps(&mut self, lane: Lane, lane_creeps: &Vec<Creep>, time_to_tick: &u64){
 		if self.can_action{
 			let closest_creeps = lane_creeps.into_iter().filter(|&x| x.lane == lane).collect::<Vec<&Creep>>();  //change to retain
 			if closest_creeps.len() > 0{
@@ -357,17 +359,17 @@ impl MoveHero for Hero{
 					let (x_diff_corner, y_diff_corner) = (self.position.x_difference(corner),
 					 self.position.y_difference(corner));
 					match (x_diff_corner, y_diff_corner){
-						(x, _) if x.abs() <= 10. => self.move_to_creep_along_lane(&closest_creep, true),
-						(_, y) if y.abs() <= 10. => self.move_to_creep_along_lane(&closest_creep, false),
+						(x, _) if x.abs() <= 10. => self.move_to_creep_along_lane(&closest_creep, true, time_to_tick),
+						(_, y) if y.abs() <= 10. => self.move_to_creep_along_lane(&closest_creep, false, time_to_tick),
 						(x, y) if x.abs() > y.abs() && y > 0. => self.position.add_y(-1.),
 						(x, y) if x.abs() > y.abs() && y < 0. => self.position.add_y(1.),
 						(x, y) if x.abs() < y.abs() && x > 0. => self.position.add_x(-1.),
 						(x, y) if x.abs() < y.abs() && x < 0. => self.position.add_x(1.),
-						_ => self.move_directly_to_creep(&closest_creep)
+						_ => self.move_directly_to_creep(&closest_creep, time_to_tick)
 					}
 				}
 				else{
-					self.move_directly_to_creep(&closest_creep);
+					self.move_directly_to_creep(&closest_creep, time_to_tick);
 				}
 			}
 		}
@@ -394,14 +396,14 @@ impl ClosestEnemyHero for Hero{
 }
 
 pub trait Farm{
-    fn farm_lane(&mut self, Lane, &mut Vec<Creep>, &mut Vec<Creep>, &mut Vec<Tower>);
-	fn farm_jungle(&mut self, &mut HashMap<&'static str, NeutralCamp>);
-	fn farm_ancients(&mut self, &mut HashMap<&'static str, NeutralCamp>);
+    fn farm_lane(&mut self, Lane, &mut Vec<Creep>, &mut Vec<Creep>, &mut Vec<Tower>, time_to_tick: &u64);
+	fn farm_jungle(&mut self, &mut HashMap<&'static str, NeutralCamp>, time_to_tick: &u64);
+	fn farm_ancients(&mut self, &mut HashMap<&'static str, NeutralCamp>, time_to_tick: &u64);
 }
 
 impl Farm for Hero{
 	// can get exceptions if all a lane of lane creeps dead. fix pls
-    fn farm_lane(&mut self, lane: Lane, our_creeps: &mut Vec<Creep>, their_creeps: &mut Vec<Creep>, their_towers: &mut Vec<Tower>){
+    fn farm_lane(&mut self, lane: Lane, our_creeps: &mut Vec<Creep>, their_creeps: &mut Vec<Creep>, their_towers: &mut Vec<Tower>, time_to_tick: &u64){
 		let closest_enemy_creeps = &their_creeps.clone().into_iter().
 			filter(|&x| x.lane == lane).collect::<Vec<Creep>>();
 		let closest_friendly_creeps = &our_creeps.clone().into_iter().
@@ -423,13 +425,13 @@ impl Farm for Hero{
 		};
 		match (dist_friendly, dist_enemy, dist_tower){
 			(df, de, _) if df <= self.range && de <= self.range => self.attack_enemy_creeps(their_creeps),
-			(df, _, _) if df > self.range => self.move_towards_creeps(lane, &our_creeps),
-			(_, de, dt) if de > self.range && dt < de => self.move_to_attack_tower(their_towers, lane),
-			_ => self.move_towards_creeps(lane, &our_creeps), //shouldnt be possible
+			(df, _, _) if df > self.range => self.move_towards_creeps(lane, &our_creeps, time_to_tick),
+			(_, de, dt) if de > self.range && dt < de => self.move_to_attack_tower(their_towers, lane, time_to_tick),
+			_ => self.move_towards_creeps(lane, &our_creeps, time_to_tick), //shouldnt be possible
 		}
     }
 
-	fn farm_jungle(&mut self, neutral_creeps: &mut HashMap<&'static str, NeutralCamp>){
+	fn farm_jungle(&mut self, neutral_creeps: &mut HashMap<&'static str, NeutralCamp>, time_to_tick: &u64){
 		// currently if all creeps dead will just sit there afk
 		let mut distance_from = 9000.;
 		let mut closest_camp = None;
@@ -444,7 +446,7 @@ impl Farm for Hero{
 		match closest_camp{
 			Some(camp) => {
 				if distance_from > self.range{
-					self.move_directly_to(&camp.position);
+					self.move_directly_to(&camp.position, time_to_tick);
 					}
 					else{
 						self.attack_neutral(camp);
@@ -454,7 +456,7 @@ impl Farm for Hero{
 		}
 	}
 
-	fn farm_ancients(&mut self, neutral_creeps: &mut HashMap<&'static str, NeutralCamp>){
+	fn farm_ancients(&mut self, neutral_creeps: &mut HashMap<&'static str, NeutralCamp>, time_to_tick: &u64){
 		let ancient_camp = match neutral_creeps.entry("ancient_camp"){
 			Vacant(_) => None,
 			Occupied(entry) => Some(entry.into_mut()),
@@ -462,7 +464,7 @@ impl Farm for Hero{
 		if ancient_camp.is_some(){
 			let a = ancient_camp.unwrap();
 			if self.position.distance_between(a.position) > self.range{
-				self.move_directly_to(&a.position);
+				self.move_directly_to(&a.position, time_to_tick);
 			}
 			else{
 				self.attack_neutral(a);
@@ -472,14 +474,14 @@ impl Farm for Hero{
 }
 
 pub trait DefendTower{
-	fn move_to_defend_tower(&mut self, Lane, &Vec<Tower>);
+	fn move_to_defend_tower(&mut self, Lane, &Vec<Tower>, time_to_tick: &u64);
 }
 
 impl DefendTower for Hero{
-	fn move_to_defend_tower(&mut self, lane: Lane, our_towers: &Vec<Tower>){
+	fn move_to_defend_tower(&mut self, lane: Lane, our_towers: &Vec<Tower>, time_to_tick: &u64){
 		let closest_towers = our_towers.clone().into_iter().filter(|&x| x.lane == lane).collect::<Vec<Tower>>();
 		if closest_towers.len() > 0{
-			self.move_defensively_to(&closest_towers[0].position);
+			self.move_defensively_to(&closest_towers[0].position, time_to_tick);
 		}
 		else{
 			println!("no tower bro.should proablyb handle this");
@@ -488,19 +490,19 @@ impl DefendTower for Hero{
 }
 
 pub trait Gank{
-	fn gank_lane(&mut self, Lane, &mut Vec<Creep>, &mut [Hero; 5], &mut Vec<Tower>, &CreepClashPositions);
+	fn gank_lane(&mut self, Lane, &mut Vec<Creep>, &mut [Hero; 5], &mut Vec<Tower>, &CreepClashPositions, time_to_tick: &u64);
 }
 
 impl Gank for Hero{
 	fn gank_lane(&mut self, lane: Lane, their_creeps: &mut Vec<Creep>, enemy_heroes: &mut [Hero; 5],
-		 their_towers: &mut Vec<Tower>, creep_clash_positions: &CreepClashPositions){
+		 their_towers: &mut Vec<Tower>, creep_clash_positions: &CreepClashPositions, time_to_tick: &u64){
 		let creep_clash_pos = match lane{
  			Lane::Top => creep_clash_positions.top_clash,
  			Lane::Mid => creep_clash_positions.mid_clash,
  			Lane::Bot => creep_clash_positions.bot_clash,
  		};
 		if self.attacked_by_tower{ // run away!!!
-			self.move_directly_to(&creep_clash_pos); // should probably run somewhere cleverer
+			self.move_directly_to(&creep_clash_pos, time_to_tick); // should probably run somewhere cleverer
 			self.should_change_decision = true;
 			return
 		}
@@ -521,8 +523,8 @@ impl Gank for Hero{
 			Some(hero) =>{
 				match (creep_diff, hero_diff){
 					(_, hd) if hd < self.range => self.attack_hero(hero),
-					(_, hd) if hd >= self.range && hd < 100. => self.move_directly_to(&hero.position),
-					(cd, _) if cd > 60. => self.move_directly_to(&creep_clash_pos),
+					(_, hd) if hd >= self.range && hd < 100. => self.move_directly_to(&hero.position, time_to_tick),
+					(cd, _) if cd > 60. => self.move_directly_to(&creep_clash_pos, time_to_tick),
 					_ => {}, // if hero too far away we just lurk in the shadows
 				};
 			}
@@ -532,36 +534,36 @@ impl Gank for Hero{
 }
 
 pub trait Follow{
-	fn follow_hero(&mut self, &HeroInfo, enemy_heroes: &mut [Hero; 5]);
+	fn follow_hero(&mut self, &HeroInfo, enemy_heroes: &mut [Hero; 5],time_to_tick: &u64);
 }
 
 impl Follow for Hero{
-	fn follow_hero(&mut self, friend: &HeroInfo, enemy_heroes: &mut [Hero; 5]){
+	fn follow_hero(&mut self, friend: &HeroInfo, enemy_heroes: &mut [Hero; 5], time_to_tick: &u64){
 		let closest_enemy_hero = self.closest_enemy_hero(enemy_heroes);
 		if closest_enemy_hero.is_some(){
 			let closest_hero = closest_enemy_hero.unwrap();
 			match self.position.distance_between(closest_hero.position){
 				x if x < self.range => self.attack_hero(closest_hero),
-				x if x < 80. => self.move_directly_to(&closest_hero.position), // maybe make this dynamic?
-				_ => self.move_defensively_to(&friend.position)
+				x if x < 80. => self.move_directly_to(&closest_hero.position, time_to_tick), // maybe make this dynamic?
+				_ => self.move_defensively_to(&friend.position, time_to_tick)
 			}
 		}
 	}
 }
 
 pub trait Pull{
-	fn pull_easy(&mut self, &mut HashMap<&'static str, NeutralCamp>, side: Side);
+	fn pull_easy(&mut self, &mut HashMap<&'static str, NeutralCamp>, side: Side, time_to_tick: &u64);
 }
 
 impl Pull for Hero{
-	fn pull_easy(&mut self, camps: &mut HashMap<&'static str, NeutralCamp>, side: Side){
+	fn pull_easy(&mut self, camps: &mut HashMap<&'static str, NeutralCamp>, side: Side, time_to_tick: &u64){
 		let mut easy_camp = camps.get_mut("easy_camp").unwrap();
 		match easy_camp.hp{
 			hp if hp > 0. => {
 				if easy_camp.aggro_position.is_none(){
 					if self.position.distance_between(easy_camp.position) > self.range{
 						// so we need to not aggro the camp, until timing is right to pull to creeps
-						self.move_directly_to(&easy_camp.position);
+						self.move_directly_to(&easy_camp.position, time_to_tick);
 					}
 					else{
 						if easy_camp.position == easy_camp.home_position{
@@ -574,30 +576,60 @@ impl Pull for Hero{
 					}
 				}
 				else{
-					self.move_directly_to(&easy_camp.aggro_position.unwrap());
+					self.move_directly_to(&easy_camp.aggro_position.unwrap(), time_to_tick);
 				};
 			},
-			_ => {self.should_change_decision = true}
+			_ => {
+				self.should_change_decision = true;
+				self.update_decision_prob(Action::PullEasy, 0.);
+			}
+		}
+	}
+}
+
+pub trait Zone{
+	fn zone_out(&mut self, Lane, &mut [Hero; 5], &Vec<Creep>, &f32, &u64, &CreepClashPositions);
+}
+
+impl Zone for Hero{
+	fn zone_out(&mut self, lane: Lane, enemy_heroes: &mut [Hero; 5], our_creeps: &Vec<Creep>, xp_range: &f32,
+		 time_to_tick: &u64, creep_clash: &CreepClashPositions){
+		let closest_creep_pos = closest_creep_position(lane, &our_creeps).unwrap_or(Position{x: 9001., y: 9001.});
+		let creep_clash_pos = creep_clash.get_lane_clash(lane);
+		let current_decision = self.current_decision.clone();
+		let dist_to_creepclash = self.position.distance_between(creep_clash_pos);
+		let closest_enemy_hero = self.closest_enemy_hero(enemy_heroes);
+		if closest_enemy_hero.is_some(){
+			let closest_hero = closest_enemy_hero.unwrap();
+			match (closest_hero.position.distance_between(closest_creep_pos), self.position.distance_between(closest_hero.position), dist_to_creepclash){
+				(h_to_c, h_to_h, _) if h_to_c <= *xp_range && h_to_h <= self.range => self.attack_hero(closest_hero),
+				(h_to_c, _, _) if h_to_c <= *xp_range => self.move_directly_to(&closest_hero.position, time_to_tick),
+				(_, _, h_to_cla) if h_to_cla >= 100. => self.move_directly_to(&creep_clash_pos, time_to_tick),
+				(h_to_c, _, _) if h_to_c >= *xp_range * 3. => {self.should_change_decision = true; self.update_decision_prob(current_decision, 0.)},
+				_ => {},
+			}
 		}
 	}
 }
 
 pub trait GetXp{
-	fn get_xp(&mut self, Lane, &Vec<Creep>, &f32, &Position);
+	fn get_xp(&mut self, Lane, &Vec<Creep>, &f32, &Position, &CreepClashPositions, time_to_tick: &u64);
 }
 
 impl GetXp for Hero{
 	// Should only need to be within xp range - attack range creeps
 	// might be bug where we lose some xp for slightly further away, maybe get bit closer
 	// may need rewriting once have ranged creeps
-	fn get_xp(&mut self, lane: Lane, enemy_creeps: &Vec<Creep>, xp_range: &f32, fountain_position: &Position){
-		let front_creep = enemy_creeps.into_iter().filter(|&x| x.lane == lane).collect::<Vec<&Creep>>();
-		if front_creep.len() > 1{
-			let creep = &front_creep[0];
-			match self.position.distance_between(creep.position){
-				x if x > *xp_range => self.move_directly_to(&creep.position),
+	fn get_xp(&mut self, lane: Lane, enemy_creeps: &Vec<Creep>, xp_range: &f32, fountain_position: &Position,
+		creep_clash_pos: &CreepClashPositions, time_to_tick: &u64){
+		let clash_pos = creep_clash_pos.get_lane_clash(lane);
+		let creep_pos = closest_creep_position(lane, enemy_creeps);
+		if creep_pos.is_some(){
+			match (self.position.distance_between(creep_pos.unwrap()), self.position.distance_between(clash_pos)){
+				(_, b) if b > 200. * FUDGE => self.move_directly_to(&clash_pos, time_to_tick),
+				(a, _) if a > *xp_range => self.move_directly_to(&creep_pos.unwrap(), time_to_tick),
 				// if under xp range maybe play safe and run back
-				x if x < *xp_range => self.move_directly_to(fountain_position),
+				(a, _) if a < *xp_range => self.move_directly_to(fountain_position, time_to_tick),
 				_ => {}
 			}
 		}

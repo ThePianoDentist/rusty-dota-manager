@@ -94,7 +94,7 @@ impl CoordManipulation for Position{
 	fn velocity_to(&mut self, towards: Position) -> Velocity{
 		let (x_diff, y_diff) = (towards.x - self.x, towards.y - self.y);
 		//porbably a simpler expression for this
-		Velocity{x: (x_diff/x_diff.abs()) * (x_diff/(x_diff + y_diff)).abs(), y: (y_diff/ y_diff.abs() )* (y_diff/(x_diff + y_diff)).abs()}
+		Velocity{x: x_diff/(x_diff.abs() + y_diff.abs()), y: y_diff/(x_diff.abs() + y_diff.abs())}
 	}
 }
 

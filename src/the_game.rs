@@ -7,6 +7,8 @@ use neutral_creeps::*;
 use hero_ai::*;
 
 pub const MAX_COORD: f32  = 600.0;
+pub const SCALE_FACTOR: f32 = 15000./MAX_COORD;
+pub const FUDGE: f32 = MAX_COORD / 600.;
 pub const TIME_TO_TICK: u64 = 40;
 pub const TOWER_RANGE: f32 = 30.; // heroes also need to know tower ranges for decision making
 
@@ -27,6 +29,20 @@ pub struct CreepClashPositions{
 	pub top_clash: Position,
 	pub mid_clash: Position,
 	pub bot_clash: Position
+}
+
+pub trait GetLaneClash{
+	fn get_lane_clash(&self, Lane) -> Position;
+}
+
+impl GetLaneClash for CreepClashPositions{
+	fn get_lane_clash(&self, lane: Lane) -> Position{
+		match lane{
+			Lane::Top => self.top_clash,
+			Lane::Mid => self.mid_clash,
+			Lane::Bot => self.bot_clash,
+		}
+	}
 }
 
 pub struct Game {
@@ -148,7 +164,7 @@ impl ResetStuff for Game{
 		for i in 0..2{
 			let team = &mut self.teams[i];
 			for hero in &mut team.heroes{
-				if hero.position == team.fountain.position{
+				if hero.position.distance_between(team.fountain.position) < 1.0{
 					hero.hp += 50.;
 					if hero.hp > hero.max_hp{hero.hp = hero.max_hp}
 				}
@@ -342,7 +358,7 @@ macro_rules! impl_Travel{
 impl_Travel!(Hero);
 impl_Travel!(Creep);
 
-fn closest_creep_position(lane: Lane, creeps: &Vec<Creep>) -> Option<Position>{
+pub fn closest_creep_position(lane: Lane, creeps: &Vec<Creep>) -> Option<Position>{
 	let closest_creeps = creeps.clone().into_iter().
 		filter(|&x| x.lane == lane).collect::<Vec<Creep>>();
 	let closest_creep_pos = match closest_creeps.len(){
@@ -363,9 +379,6 @@ pub trait MoveDownLane{
 
 impl MoveDownLane for Creep{
 	fn move_top_creep_radiant(&mut self, enemy_creeps: &Vec<Creep>, time_to_tick: &u64){
-		// maybe I should be changing velocity before travelling. would make sense.
-		self.travel(time_to_tick);
-
 		let closest_creep_pos = closest_creep_position(self.lane, enemy_creeps);
 		self.velocity = match (self.position.small_random_pos_offset().y, closest_creep_pos){
 			(_, b) if b.is_some() && self.position.distance_between(b.unwrap()) < 50. =>
@@ -373,6 +386,7 @@ impl MoveDownLane for Creep{
 			(a, _) if a < (MAX_COORD / 8.) => Velocity{x: 1., y: 0.},
 			_ => Velocity{x: 0., y: -1.}
 		};
+		self.travel(time_to_tick);
 	}
 
 	fn move_mid_creep_radiant(&mut self, enemy_creeps: &Vec<Creep>, time_to_tick: &u64){
@@ -502,7 +516,7 @@ impl KillOff for Game{
 					// I dont think its safe/wise to do the delete in the loop. so just loop again down below?
 				}
 			}
-			us.lane_creeps.retain(|&i| i.hp >= 0.);
+			us.lane_creeps.retain(|&i| i.hp > 0.);
 		};
 	}
 
@@ -539,11 +553,18 @@ impl KillOff for Game{
 						hero.gold += 200.// will also need gold for last hit on tower
 					}
 					// if tower died change team decisions
-					them.update_decision_prob(TeamAction::GreedyFarmAllLanesSupportsDefensive, 1.);
-					them.should_change_decision = true;
+					match them.current_decision{
+						TeamAction::FiveManTop => {them.update_decision_prob(TeamAction::GreedyFarmAllLanesSupportsDefensive, 1.);
+							them.should_change_decision = true;},
+						TeamAction::FiveManMid => {them.update_decision_prob(TeamAction::GreedyFarmAllLanesSupportsDefensive, 1.);
+							them.should_change_decision = true;},
+						TeamAction::FiveManBot => {them.update_decision_prob(TeamAction::GreedyFarmAllLanesSupportsDefensive, 1.);
+						them.should_change_decision = true;},
+						_ => {}
+					}
 				}
 			}
-			us.towers.retain(|&i| i.hp >= 0.);
+			us.towers.retain(|&i| i.hp > 0.);
 		}
 	}
 }
